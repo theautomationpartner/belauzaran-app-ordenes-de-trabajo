@@ -9,18 +9,22 @@ import type {
   Campo,
   Catalogos,
   Contacto,
+  LineaProducto,
   OrdenAGenerar,
   PayloadEmision,
+  Producto,
+  ProductoDeOrden,
   Proveedor,
+  TotalesCarga,
 } from '@/types'
 import { aNumero } from './format'
 import { TABLEROS } from '@/services/monday/columns'
 
 let contador = 0
-/** Clave local de un bloque. No usa `crypto.randomUUID` para no depender de contexto seguro. */
+/** Clave local de un bloque o de una línea. No usa `crypto.randomUUID` para no depender de HTTPS. */
 export const nuevoUid = (): string => `b${++contador}`
 
-/** Borrador vacío: un único bloque de campo listo para completar. */
+/** Borrador vacío: un bloque de campo y una línea de producto listos para completar. */
 export const borradorInicial = (): BorradorOrden => ({
   laborId: null,
   proveedorId: null,
@@ -28,6 +32,7 @@ export const borradorInicial = (): BorradorOrden => ({
   campanaId: null,
   usdPorHa: '',
   contactoId: null,
+  productos: [{ uid: nuevoUid(), productoId: null, cantPorHa: '' }],
   bloques: [{ uid: nuevoUid(), campoId: null, loteIds: [] }],
 })
 
@@ -53,6 +58,16 @@ export function contactosDeProveedor(
 export const buscar = <T extends { id: string }>(lista: T[], id: string | null): T | null =>
   id ? lista.find((x) => x.id === id) ?? null : null
 
+/**
+ * Hectáreas de un lote. Es el dato de la columna `Hect Totales` (`numeric_mm311dwm`), que es la
+ * que el tablero tiene efectivamente cargada; la productiva queda como respaldo para los lotes
+ * donde exista.
+ */
+export const hectareasDeLote = (lote: {
+  hectareasTotales: number | null
+  hectareasProductivas: number | null
+}): number | null => lote.hectareasTotales ?? lote.hectareasProductivas
+
 /** Lotes ya tomados por OTROS bloques: un mismo lote no puede repetirse en la misma carga. */
 export function lotesTomados(borrador: BorradorOrden, uidActual: string): Set<string> {
   const tomados = new Set<string>()
@@ -63,11 +78,25 @@ export function lotesTomados(borrador: BorradorOrden, uidActual: string): Set<st
   return tomados
 }
 
+/** Productos ya elegidos en OTRAS líneas: cargar dos veces el mismo insumo sería un error. */
+export function productosTomados(borrador: BorradorOrden, uidActual: string): Set<string> {
+  const tomados = new Set<string>()
+  for (const l of borrador.productos) {
+    if (l.uid === uidActual || !l.productoId) continue
+    tomados.add(l.productoId)
+  }
+  return tomados
+}
+
+/** Líneas de producto que están realmente cargadas (con producto elegido). */
+export const lineasCargadas = (borrador: BorradorOrden): LineaProducto[] =>
+  borrador.productos.filter((l) => l.productoId)
+
 /**
- * Motivos por los que el paso 1 todavía no se puede confirmar. Devolver la lista —en vez de un
- * booleano— es lo que permite decirle al usuario QUÉ le falta en lugar de sólo deshabilitar.
+ * Motivos por los que el paso de datos todavía no se puede confirmar. Devolver la lista —en vez
+ * de un booleano— es lo que permite decirle al usuario QUÉ le falta en lugar de sólo deshabilitar.
  */
-export function faltantesPaso1(borrador: BorradorOrden, catalogos: Catalogos): string[] {
+export function faltantesDatos(borrador: BorradorOrden, catalogos: Catalogos): string[] {
   const faltan: string[] = []
   if (!borrador.laborId) faltan.push('Elegí la labor.')
   if (!borrador.proveedorId) faltan.push('Elegí el proveedor / contratista.')
@@ -88,8 +117,34 @@ export function faltantesPaso1(borrador: BorradorOrden, catalogos: Catalogos): s
   return faltan
 }
 
-/** Motivos por los que el paso 2 todavía no se puede confirmar. */
-export function faltantesPaso2(borrador: BorradorOrden): string[] {
+/**
+ * Motivos por los que el paso de productos no se puede confirmar.
+ *
+ * La lista de productos puede quedar VACÍA a propósito: hay labores puramente mecánicas (disco,
+ * corte, rastra) que no aplican ningún insumo. Lo que sí se exige es que todo producto agregado
+ * tenga una dosis válida: un subitem con cantidad cero o vacía no sirve para nada.
+ */
+export function faltantesProductos(borrador: BorradorOrden): string[] {
+  const faltan: string[] = []
+  const cargadas = lineasCargadas(borrador)
+
+  const sinCantidad = cargadas.filter((l) => {
+    const n = aNumero(l.cantPorHa)
+    return n == null || n <= 0
+  }).length
+
+  if (sinCantidad > 0) {
+    faltan.push(
+      sinCantidad === 1
+        ? 'Hay un producto sin la cantidad por hectárea cargada.'
+        : `Hay ${sinCantidad} productos sin la cantidad por hectárea cargada.`,
+    )
+  }
+  return faltan
+}
+
+/** Motivos por los que el paso de campos no se puede confirmar. */
+export function faltantesCampos(borrador: BorradorOrden): string[] {
   const faltan: string[] = []
   const conCampo = borrador.bloques.filter((b) => b.campoId)
   if (conCampo.length === 0) return ['Agregá al menos un campo con sus lotes.']
@@ -109,49 +164,110 @@ export function faltantesPaso2(borrador: BorradorOrden): string[] {
 }
 
 /**
- * Expande los bloques a las órdenes concretas. El tablero admite UN campo y UN lote por orden,
- * así que un bloque con 3 lotes produce 3 órdenes idénticas salvo por el lote conectado.
+ * Resuelve los productos de la carga para un lote de `hectareas`.
+ *
+ * La dosis por hectárea es la misma en todos los lotes —se elige una sola vez, antes de los
+ * campos—; lo que cambia por lote es la cantidad total, que depende de su superficie.
  */
-export function expandirOrdenes(borrador: BorradorOrden, campos: Campo[]): OrdenAGenerar[] {
+function productosPara(
+  borrador: BorradorOrden,
+  productos: Producto[],
+  hectareas: number | null,
+): ProductoDeOrden[] {
+  const resueltos: ProductoDeOrden[] = []
+
+  for (const linea of borrador.productos) {
+    const producto = buscar(productos, linea.productoId)
+    const cantPorHa = aNumero(linea.cantPorHa)
+    if (!producto || cantPorHa == null || cantPorHa <= 0) continue
+
+    const cantTotal = hectareas != null ? redondear(cantPorHa * hectareas) : null
+    resueltos.push({
+      productoId: producto.id,
+      nombre: producto.nombre,
+      unidad: producto.unidad,
+      etiqueta: producto.etiquetaDropdown,
+      cantPorHa,
+      cantTotal,
+      precioUnitario: producto.precioUnitario,
+      totalUsd:
+        cantTotal != null && producto.precioUnitario != null
+          ? redondear(cantTotal * producto.precioUnitario)
+          : null,
+    })
+  }
+  return resueltos
+}
+
+/** Redondeo a dos decimales, para que los totales no arrastren coletazos de coma flotante. */
+const redondear = (n: number): number => Math.round(n * 100) / 100
+
+/**
+ * Suma una lista de valores que pueden faltar. Devuelve `null` si ALGUNO falta: un total
+ * incompleto presentado como si estuviera completo es peor que no mostrar total.
+ */
+function sumarExacto(valores: (number | null)[]): number | null {
+  if (valores.length === 0) return 0
+  if (valores.some((v) => v == null)) return null
+  return redondear(valores.reduce<number>((acc, v) => acc + (v ?? 0), 0))
+}
+
+/**
+ * Expande los bloques a las órdenes concretas. El tablero admite UN campo y UN lote por orden,
+ * así que un bloque con 3 lotes produce 3 órdenes idénticas salvo por el lote conectado y por
+ * las cantidades de producto, que se recalculan con las hectáreas de cada lote.
+ */
+export function expandirOrdenes(borrador: BorradorOrden, catalogos: Catalogos): OrdenAGenerar[] {
   const usdHa = aNumero(borrador.usdPorHa)
   const ordenes: OrdenAGenerar[] = []
 
   for (const bloque of borrador.bloques) {
-    const campo = buscar(campos, bloque.campoId)
+    const campo: Campo | null = buscar(catalogos.campos, bloque.campoId)
     if (!campo) continue
+
     for (const loteId of bloque.loteIds) {
       const lote = campo.lotes.find((l) => l.id === loteId)
       if (!lote) continue
-      // Se prioriza la hectárea productiva; si el lote no la tiene cargada, se usa la total.
-      const has = lote.hectareasProductivas ?? lote.hectareasTotales
+
+      const hectareas = hectareasDeLote(lote)
+      const productos = productosPara(borrador, catalogos.productos, hectareas)
+      const totalLaborUsd =
+        hectareas != null && usdHa != null ? redondear(hectareas * usdHa) : null
+      const totalProductosUsd = sumarExacto(productos.map((p) => p.totalUsd))
+
       ordenes.push({
         campoId: campo.id,
         campoNombre: campo.nombre,
         loteId: lote.id,
         loteNombre: lote.nombre,
-        hectareas: has,
-        totalUsd: has != null && usdHa != null ? Math.round(has * usdHa * 100) / 100 : null,
+        hectareas,
+        totalLaborUsd,
+        productos,
+        totalProductosUsd,
+        totalUsd:
+          totalLaborUsd != null && totalProductosUsd != null
+            ? redondear(totalLaborUsd + totalProductosUsd)
+            : null,
       })
     }
   }
   return ordenes
 }
 
-/** Total en dólares de todas las órdenes. `null` si alguna no tiene hectáreas cargadas. */
-export function totalGeneral(ordenes: OrdenAGenerar[]): number | null {
-  if (ordenes.length === 0 || ordenes.some((o) => o.totalUsd == null)) return null
-  return Math.round(ordenes.reduce((acc, o) => acc + (o.totalUsd ?? 0), 0) * 100) / 100
-}
-
-/** Suma de hectáreas de las órdenes. `null` si alguna no tiene el dato cargado. */
-export function hectareasTotales(ordenes: OrdenAGenerar[]): number | null {
-  if (ordenes.length === 0 || ordenes.some((o) => o.hectareas == null)) return null
-  return Math.round(ordenes.reduce((acc, o) => acc + (o.hectareas ?? 0), 0) * 100) / 100
+/** Totales de toda la carga, para las métricas del resumen. */
+export function totalesDe(ordenes: OrdenAGenerar[]): TotalesCarga {
+  return {
+    ordenes: ordenes.length,
+    hectareas: sumarExacto(ordenes.map((o) => o.hectareas)),
+    labor: sumarExacto(ordenes.map((o) => o.totalLaborUsd)),
+    productos: sumarExacto(ordenes.map((o) => o.totalProductosUsd)),
+    general: sumarExacto(ordenes.map((o) => o.totalUsd)),
+  }
 }
 
 /**
- * Arma el payload que consume Make para crear un item por orden. Devuelve `null` si el borrador
- * está incompleto: emitir a medias crearía órdenes rotas en el tablero.
+ * Arma el payload que consume Make para crear un item por orden, con sus subitems de producto.
+ * Devuelve `null` si el borrador está incompleto: emitir a medias crearía órdenes rotas.
  */
 export function armarPayload(borrador: BorradorOrden, catalogos: Catalogos): PayloadEmision | null {
   const labor = buscar(catalogos.labores, borrador.laborId)
@@ -160,7 +276,7 @@ export function armarPayload(borrador: BorradorOrden, catalogos: Catalogos): Pay
   const campana = buscar(catalogos.campanas, borrador.campanaId)
   const contacto = buscar(catalogos.contactos, borrador.contactoId)
   const usdPorHa = aNumero(borrador.usdPorHa)
-  const ordenes = expandirOrdenes(borrador, catalogos.campos)
+  const ordenes = expandirOrdenes(borrador, catalogos)
 
   if (!labor || !proveedor || !cultivo || !campana || usdPorHa == null || ordenes.length === 0) {
     return null

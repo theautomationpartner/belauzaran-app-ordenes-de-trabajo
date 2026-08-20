@@ -361,3 +361,182 @@
   }
 }
 
+
+/* ===== Fila de acciones bajo una lista de bloques ===== */
+.acciones-bloque {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+/* ===== Línea de producto (paso 2) ===== */
+.grid-producto {
+  display: grid;
+  /* El selector manda: es donde se busca entre 215 productos. La dosis y el precio son angostos. */
+  grid-template-columns: minmax(240px, 2fr) minmax(170px, 1fr) minmax(150px, 1fr);
+  gap: 14px;
+}
+@media (max-width: 780px) {
+  .grid-producto {
+    grid-template-columns: 1fr;
+  }
+}
+/* Campo con la unidad fija pegada adentro, a la derecha (litros, kilos, plantas…). */
+.fc-sufijo {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.fc-sufijo > span {
+  position: absolute;
+  right: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-gray);
+  pointer-events: none;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fc-sufijo .fc {
+  padding-right: 78px;
+  font-weight: 700;
+}
+/* Dato que viene del tablero y no se edita: se muestra sin caja de input para que no invite a
+   escribir encima. */
+.dato-fijo {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 2px;
+  font-size: 15px;
+}
+
+.metrica-ic--violeta {
+  background: var(--purple-light);
+  color: var(--purple);
+}
+
+/* ===== Tarjeta de orden (paso 4) ===== */
+.ordenes-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.orden-card {
+  border: 1px solid var(--tint-summary-bd);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+.orden-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: #f6fbf8;
+  border-bottom: 1px solid var(--tint-summary-bd);
+}
+.orden-nro {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: var(--campo);
+  background: var(--campo-soft);
+  border-radius: 5px;
+  padding: 3px 8px;
+  flex: none;
+}
+.orden-ubic {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.orden-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* Tabla de productos dentro de la tarjeta: más chica que la tabla principal y sin borde propio. */
+.tabla--compacta {
+  min-width: 420px;
+  font-size: 13px;
+}
+.tabla--compacta th {
+  background: transparent;
+  padding: 4px 10px;
+  border-bottom: 1px solid #eef0f4;
+}
+.tabla--compacta td {
+  padding: 7px 10px;
+}
+
+/* Totales de una orden: labor, productos y el total, separados del detalle por un filete. */
+.orden-totales,
+.totales-carga {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  padding-top: 10px;
+  border-top: 1px solid #eef0f4;
+}
+.orden-totales > span,
+.totales-carga > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.orden-total-val {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.orden-total--fuerte {
+  margin-left: auto;
+  text-align: right;
+}
+.orden-total--fuerte .orden-total-val {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--green-dark);
+}
+.totales-carga {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--tint-summary-bd);
+  border-radius: 10px;
+  background: var(--tint-summary);
+}
+.totales-val {
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.totales--fuerte {
+  margin-left: auto;
+  text-align: right;
+}
+.totales--fuerte .totales-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--green-dark);
+  letter-spacing: -0.4px;
+}
+@media (max-width: 560px) {
+  .orden-total--fuerte,
+  .totales--fuerte {
+    margin-left: 0;
+    text-align: left;
+    flex: 1 0 100%;
+    padding-top: 8px;
+    border-top: 1px dashed var(--tint-summary-bd);
+  }
+}

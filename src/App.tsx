@@ -4,8 +4,9 @@ import { LogoEmpresa } from '@/components/ui/LogoEmpresa'
 import { Stepper } from '@/components/ui/Stepper'
 import { SelectorBuscable } from '@/components/ui/SelectorBuscable'
 import { Paso1Datos } from '@/features/orden/Paso1Datos'
-import { Paso2Campos } from '@/features/orden/Paso2Campos'
-import { Paso3Emision } from '@/features/orden/Paso3Emision'
+import { Paso2Productos } from '@/features/orden/Paso2Productos'
+import { Paso3Campos } from '@/features/orden/Paso3Campos'
+import { Paso4Emision } from '@/features/orden/Paso4Emision'
 import { traerCatalogos } from '@/services/monday/catalogos'
 import { mondayHabilitado } from '@/services/monday/sdk'
 import { emisionHabilitada, emitirOrdenes } from '@/services/emision'
@@ -13,11 +14,12 @@ import {
   armarPayload,
   borradorInicial,
   expandirOrdenes,
-  faltantesPaso1,
-  faltantesPaso2,
+  faltantesCampos,
+  faltantesDatos,
+  faltantesProductos,
 } from '@/lib/orden'
 
-const PASOS = ['Datos de la orden', 'Campos y lotes', 'Revisar y emitir'] as const
+const PASOS = ['Datos de la orden', 'Productos', 'Campos y lotes', 'Revisar y emitir'] as const
 
 /** Única operación que resuelve la app hoy; el selector queda listo para sumar más. */
 const OPERACIONES = [{ id: 'ORDEN_DE_TRABAJO', nombre: 'Cargar Orden de Trabajo' }]
@@ -84,13 +86,14 @@ export function App() {
 
   const faltantes = useMemo(() => {
     if (!catalogos) return []
-    if (paso === 0) return faltantesPaso1(borrador, catalogos)
-    if (paso === 1) return faltantesPaso2(borrador)
+    if (paso === 0) return faltantesDatos(borrador, catalogos)
+    if (paso === 1) return faltantesProductos(borrador)
+    if (paso === 2) return faltantesCampos(borrador)
     return []
   }, [paso, borrador, catalogos])
 
   const ordenes = useMemo(
-    () => (catalogos ? expandirOrdenes(borrador, catalogos.campos) : []),
+    () => (catalogos ? expandirOrdenes(borrador, catalogos) : []),
     [borrador, catalogos],
   )
 
@@ -170,7 +173,7 @@ export function App() {
             <>
               <div className="spinner" />
               <h2>Cargando datos de Monday…</h2>
-              <p>Labores, proveedores, cultivos, campañas, contactos y campos.</p>
+              <p>Labores, proveedores, cultivos, campañas, contactos, campos y productos.</p>
             </>
           ) : (
             <>
@@ -225,19 +228,28 @@ export function App() {
           <Paso1Datos catalogos={datos} borrador={borrador} onCambio={actualizar} />
         )}
         {paso === 1 && (
-          <Paso2Campos
+          <Paso2Productos
             catalogos={datos}
             borrador={borrador}
             onCambio={actualizar}
-            onEditarPaso1={() => irA(0)}
+            onEditarDatos={() => irA(0)}
           />
         )}
         {paso === 2 && (
-          <Paso3Emision
+          <Paso3Campos
             catalogos={datos}
             borrador={borrador}
-            onEditarPaso1={() => irA(0)}
-            onEditarPaso2={() => irA(1)}
+            onCambio={actualizar}
+            onEditarDatos={() => irA(0)}
+          />
+        )}
+        {paso === 3 && (
+          <Paso4Emision
+            catalogos={datos}
+            borrador={borrador}
+            onEditarDatos={() => irA(0)}
+            onEditarProductos={() => irA(1)}
+            onEditarCampos={() => irA(2)}
           />
         )}
 

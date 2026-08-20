@@ -14,6 +14,9 @@ export const TABLEROS = {
   campos: '18411611312',
   /** Tablero de subitems de Campos: ahí viven los lotes. */
   lotes: '18411611427',
+  productos: '18410927152',
+  /** Subitems de la orden: cada producto usado es uno de estos. */
+  productosOT: '18410927290',
 } as const
 
 /** ✋ Orden de Trabajo (18410927171) — columnas que completa esta app. */
@@ -61,4 +64,31 @@ export const COL_LABOR = { codigo: 'pulse_id_mm0974qw' } as const
 export const COL_LOTE = {
   hectareasTotales: 'numeric_mm311dwm',
   hectareasProductivas: 'numeric_mm31x9es',
+} as const
+
+/** 🧴🧪 Productos (18410927152). */
+export const COL_PRODUCTO = {
+  estado: 'color_mm3c4b2t',
+  unidad: 'dropdown_mm1f1sdt',
+  tipo: 'dropdown_mm48bjb0',
+  /** Cantidad por hectárea de referencia; se propone como valor inicial al agregar el producto. */
+  cantPorHa: 'numeric_mm12vxqy',
+  precioUnitario: 'numeric_mm3589e9',
+} as const
+
+/** Productos que no se ofrecen para cargar: sólo entran los activos o los recién dados de alta. */
+export const PRODUCTO_ESTADOS_VALIDOS = ['Activo', 'Nuevo!']
+
+/**
+ * Subitems de ✋ Orden de Trabajo (18410927290): un subitem por producto usado.
+ *
+ * El producto NO se guarda como conexión sino como etiqueta de un `dropdown`, con el formato
+ * `"<nombre del producto> - <unidad>"`. Por eso la app arrastra esa etiqueta armada junto al id:
+ * es lo que Make necesita para completar la columna.
+ */
+export const COL_PRODUCTO_OT = {
+  producto: 'dropdown_mm3cg47g',
+  cantPorHa: 'numeric_mm3869nh',
+  hectareas: 'numeric_mm3fvr3q',
+  precioUnitario: 'numeric_mm415mdz',
 } as const

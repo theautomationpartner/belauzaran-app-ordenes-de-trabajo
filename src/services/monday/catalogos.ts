@@ -2,10 +2,20 @@
  * Carga de los tableros maestros que alimentan los selectores de la orden.
  *
  * Todo se trae en UN viaje al abrir la operación: son tableros chicos (28 labores, 65 proveedores,
- * 15 cultivos, 7 campañas, 55 contactos, 16 campos) y tenerlos en memoria hace que filtrar
- * contactos por proveedor o lotes por campo sea instantáneo, sin una request por tecla.
+ * 15 cultivos, 7 campañas, 55 contactos, 16 campos, 225 productos) y tenerlos en memoria hace que
+ * filtrar contactos por proveedor o lotes por campo sea instantáneo, sin una request por tecla.
  */
-import type { Campana, Campo, Catalogos, Contacto, Cultivo, Labor, Lote, Proveedor } from '@/types'
+import type {
+  Campana,
+  Campo,
+  Catalogos,
+  Contacto,
+  Cultivo,
+  Labor,
+  Lote,
+  Producto,
+  Proveedor,
+} from '@/types'
 import { mondayApi } from './sdk'
 import {
   CAMPANA_ACTIVA,
@@ -14,7 +24,9 @@ import {
   COL_CULTIVO,
   COL_LABOR,
   COL_LOTE,
+  COL_PRODUCTO,
   COL_PROVEEDOR,
+  PRODUCTO_ESTADOS_VALIDOS,
   TABLEROS,
 } from './columns'
 import { etiquetas, idsConectados, numero, porId, texto, type ColumnaCruda } from './parse'
@@ -192,15 +204,52 @@ async function traerCampos(): Promise<Campo[]> {
     .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
 }
 
-/** Trae los seis catálogos en paralelo: la espera total es la del tablero más lento, no la suma. */
+/**
+ * 🧴🧪 Productos. Sólo los que se pueden usar hoy: los inactivos siguen en el tablero por
+ * historial, pero ofrecerlos para una orden nueva sería un error.
+ */
+async function traerProductos(): Promise<Producto[]> {
+  const seleccion = `column_values(ids: ${ids(
+    COL_PRODUCTO.estado,
+    COL_PRODUCTO.unidad,
+    COL_PRODUCTO.tipo,
+    COL_PRODUCTO.cantPorHa,
+    COL_PRODUCTO.precioUnitario,
+  )}) { ${CAMPOS_COLUMNA} }`
+  const items = await traerItems(TABLEROS.productos, seleccion, 300)
+
+  return items
+    .map((it) => {
+      const cols = porId(it.column_values)
+      const nombre = it.name.replace(/\s+/g, ' ').trim()
+      const unidad = texto(cols, COL_PRODUCTO.unidad)
+      return {
+        id: it.id,
+        nombre,
+        estado: texto(cols, COL_PRODUCTO.estado),
+        unidad,
+        tipo: texto(cols, COL_PRODUCTO.tipo),
+        cantPorHaSugerida: numero(cols, COL_PRODUCTO.cantPorHa),
+        precioUnitario: numero(cols, COL_PRODUCTO.precioUnitario),
+        // El dropdown del subitem rotula los productos como "<nombre> - <unidad>".
+        etiquetaDropdown: unidad ? `${nombre} - ${unidad}` : nombre,
+      }
+    })
+    .filter((p) => PRODUCTO_ESTADOS_VALIDOS.includes(p.estado))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+}
+
+/** Trae los catálogos en paralelo: la espera total es la del tablero más lento, no la suma. */
 export async function traerCatalogos(): Promise<Catalogos> {
-  const [labores, proveedores, cultivos, campanas, contactos, campos] = await Promise.all([
-    traerLabores(),
-    traerProveedores(),
-    traerCultivos(),
-    traerCampanas(),
-    traerContactos(),
-    traerCampos(),
-  ])
-  return { labores, proveedores, cultivos, campanas, contactos, campos }
+  const [labores, proveedores, cultivos, campanas, contactos, campos, productos] =
+    await Promise.all([
+      traerLabores(),
+      traerProveedores(),
+      traerCultivos(),
+      traerCampanas(),
+      traerContactos(),
+      traerCampos(),
+      traerProductos(),
+    ])
+  return { labores, proveedores, cultivos, campanas, contactos, campos, productos }
 }

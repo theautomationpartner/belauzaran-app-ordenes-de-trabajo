@@ -3,28 +3,24 @@ import type { BloqueCampo, BorradorOrden, Campo, Catalogos } from '@/types'
 import { SelectorBuscable, type OpcionSelector } from '@/components/ui/SelectorBuscable'
 import { PasoHeader } from '@/components/ui/PasoHeader'
 import { ResumenOrden } from './ResumenOrden'
-import { buscar, expandirOrdenes, lotesTomados, nuevoUid } from '@/lib/orden'
+import { buscar, expandirOrdenes, hectareasDeLote, lotesTomados, nuevoUid } from '@/lib/orden'
 import { hectareas } from '@/lib/format'
 
 interface Props {
   catalogos: Catalogos
   borrador: BorradorOrden
   onCambio: (parcial: Partial<BorradorOrden>) => void
-  onEditarPaso1: () => void
+  onEditarDatos: () => void
 }
 
-/** Hectáreas del lote: se muestra la productiva y, si no está cargada, la total. */
-const hectareasDe = (l: { hectareasProductivas: number | null; hectareasTotales: number | null }) =>
-  l.hectareasProductivas ?? l.hectareasTotales
-
 /**
- * Paso 2 — Campos y lotes.
+ * Paso 3 — Campos y lotes.
  *
  * Cada bloque es UN campo con los lotes que se le eligen. El usuario puede agregar tantos bloques
  * como campos necesite. Al emitir, cada lote se convierte en una orden propia: el tablero
  * ✋ Orden de Trabajo admite un solo campo y un solo lote por item.
  */
-export function Paso2Campos({ catalogos, borrador, onCambio, onEditarPaso1 }: Props) {
+export function Paso3Campos({ catalogos, borrador, onCambio, onEditarDatos }: Props) {
   const opCampos: OpcionSelector[] = catalogos.campos.map((c) => ({
     id: c.id,
     nombre: c.nombre,
@@ -32,8 +28,8 @@ export function Paso2Campos({ catalogos, borrador, onCambio, onEditarPaso1 }: Pr
   }))
 
   const ordenes = useMemo(
-    () => expandirOrdenes(borrador, catalogos.campos),
-    [borrador, catalogos.campos],
+    () => expandirOrdenes(borrador, catalogos),
+    [borrador, catalogos],
   )
 
   const actualizarBloque = (uid: string, parcial: Partial<BloqueCampo>) => {
@@ -75,12 +71,12 @@ export function Paso2Campos({ catalogos, borrador, onCambio, onEditarPaso1 }: Pr
   return (
     <div className="view">
       <PasoHeader
-        numero={2}
+        numero={3}
         titulo="Campos y lotes"
         descripcion="Agregá un campo por bloque y marcá los lotes de ese campo. Se genera una orden por cada lote."
       />
 
-      <ResumenOrden catalogos={catalogos} borrador={borrador} onEditar={onEditarPaso1} />
+      <ResumenOrden catalogos={catalogos} borrador={borrador} onEditar={onEditarDatos} />
 
       <div className="bloques">
         {borrador.bloques.map((bloque, i) => {
@@ -192,7 +188,7 @@ export function Paso2Campos({ catalogos, borrador, onCambio, onEditarPaso1 }: Pr
                                 {ocupado ? (
                                   <span className="lote-tomado">Ya usado en otro bloque</span>
                                 ) : (
-                                  <span className="lote-ha">{hectareas(hectareasDe(lote))}</span>
+                                  <span className="lote-ha">{hectareas(hectareasDeLote(lote))}</span>
                                 )}
                               </span>
                             </button>
@@ -208,7 +204,7 @@ export function Paso2Campos({ catalogos, borrador, onCambio, onEditarPaso1 }: Pr
         })}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginTop: 14 }}>
+      <div className="acciones-bloque">
         <button type="button" className="btn btn-outblue" onClick={agregarBloque}>
           <i className="fas fa-plus" aria-hidden /> Agregar otro campo
         </button>

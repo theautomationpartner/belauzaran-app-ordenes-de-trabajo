@@ -69,6 +69,23 @@ export interface Campo extends ItemBasico {
   lotes: Lote[]
 }
 
+/** 🧴🧪 Productos (18410927152). Insumos que se aplican durante la labor. */
+export interface Producto extends ItemBasico {
+  estado: string
+  /** Litros, Kilos, CM3, Plantas… Define en qué se expresa la cantidad por hectárea. */
+  unidad: string
+  /** Herbicida, Semilla, Fertilizante… */
+  tipo: string
+  /** Cantidad por hectárea de referencia del tablero. Se propone al agregar el producto. */
+  cantPorHaSugerida: number | null
+  precioUnitario: number | null
+  /**
+   * Etiqueta exacta del dropdown de subitems de la orden (`"<nombre> - <unidad>"`). Se arma acá
+   * porque es el valor que Make necesita para completar la columna del subitem.
+   */
+  etiquetaDropdown: string
+}
+
 /** Catálogos que la app trae de una sola vez al abrir la operación. */
 export interface Catalogos {
   labores: Labor[]
@@ -77,9 +94,21 @@ export interface Catalogos {
   campanas: Campana[]
   contactos: Contacto[]
   campos: Campo[]
+  productos: Producto[]
 }
 
-/** Un bloque "Campo + lotes de ese campo" del paso 2. Se repite tantas veces como haga falta. */
+/**
+ * Un producto agregado a la orden con su dosis. La cantidad es texto por el mismo motivo que
+ * `usdPorHa`: no pelear con la coma decimal mientras se tipea.
+ */
+export interface LineaProducto {
+  /** Clave local de la línea; no viaja a Monday. */
+  uid: string
+  productoId: string | null
+  cantPorHa: string
+}
+
+/** Un bloque "Campo + lotes de ese campo". Se repite tantas veces como haga falta. */
 export interface BloqueCampo {
   /** Clave local del bloque; no viaja a Monday. */
   uid: string
@@ -97,7 +126,28 @@ export interface BorradorOrden {
   /** U$/Ha de la labor. Se guarda como texto para no pelear con la coma decimal al tipear. */
   usdPorHa: string
   contactoId: string | null
+  /** Productos a aplicar. Los mismos, con la misma dosis, para todos los lotes de la carga. */
+  productos: LineaProducto[]
   bloques: BloqueCampo[]
+}
+
+/**
+ * Un producto ya resuelto para un lote concreto: es lo que va a ser un subitem de la orden.
+ * La dosis es la misma en todos los lotes; lo que cambia es la cantidad total, que depende de
+ * las hectáreas de cada uno.
+ */
+export interface ProductoDeOrden {
+  productoId: string
+  nombre: string
+  unidad: string
+  /** Etiqueta para el dropdown del subitem (`COL_PRODUCTO_OT.producto`). */
+  etiqueta: string
+  cantPorHa: number
+  /** Cantidad por hectárea × hectáreas del lote. `null` si el lote no tiene hectáreas. */
+  cantTotal: number | null
+  precioUnitario: number | null
+  /** Cantidad total × precio unitario. `null` si falta cualquiera de los dos. */
+  totalUsd: number | null
 }
 
 /**
@@ -111,6 +161,12 @@ export interface OrdenAGenerar {
   loteNombre: string
   hectareas: number | null
   /** Hectáreas × U$/Ha. `null` si falta alguno de los dos. */
+  totalLaborUsd: number | null
+  /** Un subitem por producto, con la cantidad ya calculada para las hectáreas de este lote. */
+  productos: ProductoDeOrden[]
+  /** Suma de los productos de esta orden. `null` si alguno no tiene precio cargado. */
+  totalProductosUsd: number | null
+  /** Labor + productos. `null` si falta cualquiera de los dos. */
   totalUsd: number | null
 }
 
@@ -125,4 +181,13 @@ export interface PayloadEmision {
   contacto: (ItemBasico & { telefono: string; email: string }) | null
   usdPorHa: number
   ordenes: OrdenAGenerar[]
+}
+
+/** Totales de toda la carga, para las métricas del resumen. */
+export interface TotalesCarga {
+  ordenes: number
+  hectareas: number | null
+  labor: number | null
+  productos: number | null
+  general: number | null
 }

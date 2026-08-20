@@ -1,6 +1,6 @@
 import type { BorradorOrden, Catalogos } from '@/types'
 import { aNumero, usd } from '@/lib/format'
-import { buscar } from '@/lib/orden'
+import { buscar, lineasCargadas } from '@/lib/orden'
 
 interface Props {
   catalogos: Catalogos
@@ -29,6 +29,16 @@ export function ResumenOrden({ catalogos, borrador, onEditar }: Props) {
     { lbl: 'U$/Ha', val: valor != null ? usd(valor) : null },
     { lbl: 'Contacto', val: contacto?.nombre },
   ]
+
+  // Los productos aparecen recién cuando hay alguno cargado: en el primer paso todavía no existen
+  // y una casilla en "—" haría creer que falta completar algo.
+  const productos = lineasCargadas(borrador)
+  if (productos.length > 0) {
+    datos.push({
+      lbl: 'Productos',
+      val: `${productos.length} insumo${productos.length === 1 ? '' : 's'}`,
+    })
+  }
 
   return (
     <div className="card card--data">
