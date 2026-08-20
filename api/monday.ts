@@ -9,6 +9,14 @@
 const API = 'https://api.monday.com/v2'
 const API_VERSION = '2024-10'
 
+/**
+ * Runtime declarado a mano. Sin esto Vercel toma el runtime de Node, que espera la firma
+ * `(req, res)` de Express y no la de `Request`/`Response` que usa este handler: el deploy
+ * compila igual y la función falla recién en la primera llamada. Además, para un proxy que
+ * sólo reenvía un `fetch`, el edge arranca sin cold start.
+ */
+export const config = { runtime: 'edge' }
+
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 })
