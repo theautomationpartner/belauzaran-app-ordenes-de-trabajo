@@ -1,0 +1,10 @@
+# Normaliza los finales de línea: en el repositorio siempre LF, en el checkout lo que use cada
+# sistema. Sin esto, un mismo archivo editado en Windows y en Mac aparece como "todo cambiado".
+* text=auto eol=lf
+
+# Binarios: nunca se tocan.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

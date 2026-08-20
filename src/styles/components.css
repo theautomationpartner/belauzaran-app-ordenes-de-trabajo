@@ -1,0 +1,688 @@
+/* Piezas reutilizables: selectores de contexto, stepper, cards, campos, botones, chips. */
+
+/* ===== Selectores superiores de contexto ===== */
+.topsel-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.topsel-lbl {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+.selbox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--primary-blue);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--primary-blue);
+  font-size: 13px;
+  font-weight: 600;
+  width: 260px;
+  max-width: 100%;
+}
+.selbox--btn {
+  cursor: pointer;
+}
+.selbox-val {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Logo de la empresa. El alto lo fija la caja y el ancho lo pone la imagen (`object-fit:
+   contain`): entra completa, sin recorte ni deformación, con cualquier proporción de archivo. */
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 20px;
+  border-left: 1px solid #e4e7ec;
+}
+.marca-logo {
+  height: 52px;
+  width: auto;
+  max-width: 190px;
+  object-fit: contain;
+  user-select: none;
+}
+@media (max-width: 720px) {
+  .marca {
+    padding-left: 12px;
+  }
+  .marca-logo {
+    height: 38px;
+    max-width: 130px;
+  }
+}
+
+/* ===== Stepper ===== */
+.stepper {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-gray);
+}
+.step-nom {
+  font-size: 12px;
+  line-height: 1.2;
+  max-width: 86px;
+  text-align: center;
+  text-wrap: balance;
+}
+.step.done {
+  color: var(--text-dark);
+}
+.step.done .sic {
+  background: var(--green);
+  color: #fff;
+  border: 1px solid var(--green);
+}
+.step.cur {
+  color: var(--text-dark);
+  font-weight: 600;
+}
+.step.cur .sic {
+  background: var(--primary-blue);
+  color: #fff;
+  border: 1px solid var(--primary-blue);
+  /* Halo que respira: ubica de un vistazo en qué etapa está parado el usuario. */
+  animation: step-brillo 1.8s ease-in-out infinite alternate;
+}
+@keyframes step-brillo {
+  from {
+    box-shadow: 0 0 0 0 rgba(0, 82, 204, 0.35), 0 0 4px 0 rgba(0, 82, 204, 0.25);
+  }
+  to {
+    box-shadow: 0 0 0 6px rgba(0, 82, 204, 0), 0 0 14px 3px rgba(0, 82, 204, 0.55);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .step.cur .sic {
+    animation: none;
+    box-shadow: 0 0 0 4px rgba(0, 82, 204, 0.22);
+  }
+}
+.step.off .sic {
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--text-gray);
+}
+.sic {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.step--nav {
+  cursor: pointer;
+}
+.step--nav .sic {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.step--nav:hover .sic {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.16);
+}
+.step--nav:focus-visible {
+  outline: none;
+}
+.step--nav:focus-visible .sic {
+  box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.4);
+}
+.step--locked {
+  cursor: not-allowed;
+}
+.sline {
+  height: 3px;
+  flex: 0 0 auto;
+  width: 30px;
+  background: var(--border);
+  border-radius: 2px;
+  transition: background 0.3s;
+  /* Baja el conector hasta el eje del círculo: el stepper alinea por el tope. */
+  margin-top: 13.5px;
+}
+.sline.done {
+  background: var(--green);
+}
+@media (max-width: 560px) {
+  .sline {
+    width: 14px;
+  }
+  .step-nom {
+    max-width: 66px;
+    font-size: 11px;
+  }
+}
+
+/* ===== Encabezado de paso ===== */
+.header-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.step-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0052cc;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.step-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.step-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1f2937;
+  letter-spacing: -0.5px;
+}
+.step-desc {
+  font-size: 14px;
+  color: #667085;
+}
+@media (max-width: 560px) {
+  .step-title {
+    font-size: 19px;
+  }
+  .step-desc {
+    font-size: 13px;
+  }
+}
+
+/* ===== Cards ===== */
+.card {
+  background: var(--tint-neutral);
+  border: 1px solid var(--tint-neutral-bd);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.card--input {
+  background: var(--tint-input);
+  border-color: var(--tint-input-bd);
+}
+.card--data {
+  background: var(--tint-data);
+  border-color: var(--tint-data-bd);
+}
+.card--summary {
+  background: var(--tint-summary);
+  border-color: var(--tint-summary-bd);
+}
+.card--flush {
+  margin-bottom: 0;
+}
+.ctitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.csub {
+  font-size: 12.5px;
+  color: var(--text-gray);
+  margin-bottom: 16px;
+}
+@media (max-width: 560px) {
+  .card {
+    padding: 15px;
+  }
+}
+
+/* ===== Campos de formulario ===== */
+.grid-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.ig {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.ig-lbl {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-gray);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+/* Marca de obligatorio: el punto rojo se lee más rápido que un asterisco perdido en el rótulo. */
+.ig-req::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  flex: none;
+}
+.ig-ok {
+  color: var(--green-dark);
+  font-size: 12px;
+}
+.ig-hint {
+  font-size: 11.5px;
+  color: var(--text-gray);
+}
+
+.fc {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  background: #fff;
+  outline: none;
+  color: var(--text-dark);
+}
+.fc:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(0, 115, 234, 0.14);
+}
+.fc:disabled {
+  background: #f1f2f5;
+  color: #98a2b3;
+  cursor: not-allowed;
+}
+/* Campo con prefijo fijo (U$S) pegado adentro del control. */
+.fc-prefijo {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.fc-prefijo > span {
+  position: absolute;
+  left: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-gray);
+  pointer-events: none;
+}
+.fc-prefijo .fc {
+  padding-left: 46px;
+  font-weight: 700;
+}
+
+/* ===== Selector buscable ===== */
+.dd {
+  position: relative;
+  width: 100%;
+}
+.dd-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-size: 15px;
+  color: var(--text-dark);
+}
+.dd-trigger:hover:not(:disabled) {
+  border-color: #b6bdd0;
+}
+.dd-trigger:focus-visible {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(0, 115, 234, 0.14);
+}
+.dd-trigger:disabled {
+  background: #f1f2f5;
+  color: #98a2b3;
+  cursor: not-allowed;
+}
+.dd--abierto .dd-trigger {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(0, 115, 234, 0.14);
+}
+.dd--elegido .dd-trigger {
+  border-color: var(--campo-bd);
+  background: var(--campo-soft);
+}
+.dd-val {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.dd-val-txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.dd-ph {
+  color: #98a2b3;
+  font-weight: 500;
+}
+.dd-sub {
+  font-size: 11.5px;
+  color: var(--text-gray);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dd-caret {
+  color: var(--text-gray);
+  font-size: 12px;
+  flex: none;
+}
+
+.dd-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  z-index: 60;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.16);
+  overflow: hidden;
+}
+.dd-buscar {
+  position: relative;
+  padding: 8px;
+  border-bottom: 1px solid #eef0f4;
+}
+.dd-buscar i {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-gray);
+  font-size: 13px;
+}
+.dd-buscar input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px 0 34px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+}
+.dd-buscar input:focus {
+  border-color: var(--primary-blue);
+}
+.dd-lista {
+  max-height: 268px;
+  overflow-y: auto;
+  /* En el celular la lista se desplaza con el dedo sin arrastrar la página de atrás. */
+  overscroll-behavior: contain;
+}
+.dd-op {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 1px solid #f1f2f5;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  color: var(--text-dark);
+}
+.dd-op:last-child {
+  border-bottom: none;
+}
+.dd-op:hover,
+.dd-op--activa {
+  background: #f0f7ff;
+}
+.dd-op--sel {
+  background: var(--campo-soft);
+  font-weight: 600;
+}
+.dd-op-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dd-op-nom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dd-op-sub {
+  font-size: 11.5px;
+  color: var(--text-gray);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dd-vacio {
+  padding: 16px 12px;
+  font-size: 13px;
+  color: var(--text-gray);
+  text-align: center;
+}
+
+/* ===== Chips ===== */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 11px;
+  background: var(--tag-bg);
+  color: #1f5fa9;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chip--verde {
+  background: #e6f9f0;
+  color: var(--green-dark);
+}
+.chip--gris {
+  background: #eef0f4;
+  color: var(--text-gray);
+}
+.chip--campo {
+  background: var(--campo-soft);
+  color: var(--campo);
+}
+.chip--naranja {
+  background: #fff4e5;
+  color: #b25e09;
+}
+
+/* ===== Botones ===== */
+.btn {
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  height: 42px;
+  padding: 0 20px;
+  transition: 0.15s;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--primary-blue);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-blue-hover);
+}
+.btn-green {
+  background: var(--green);
+  color: #fff;
+}
+.btn-green:hover:not(:disabled) {
+  background: #00b067;
+}
+.btn-out {
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--text-dark);
+}
+.btn-out:hover:not(:disabled) {
+  background: #f4f5f7;
+}
+.btn-outblue {
+  background: #fff;
+  border: 1px solid var(--primary-blue);
+  color: var(--primary-blue);
+}
+.btn-outblue:hover:not(:disabled) {
+  background: #f0f7ff;
+}
+.btn-ghost {
+  background: none;
+  border: none;
+  color: var(--text-gray);
+  height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: #f1f2f5;
+  color: var(--text-dark);
+}
+.btn-ghost--rojo {
+  color: var(--red-dark);
+}
+.btn-ghost--rojo:hover:not(:disabled) {
+  background: #fff1f0;
+}
+.btn:disabled {
+  background: #e6e9ef;
+  color: #a1a3b1;
+  border-color: #e6e9ef;
+  cursor: not-allowed;
+}
+.btn--sm {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* ===== Avisos ===== */
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  border: 1px solid;
+}
+.aviso i {
+  margin-top: 2px;
+  flex: none;
+}
+.aviso--info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+.aviso--warn {
+  background: #fffaeb;
+  border-color: #fedf89;
+  color: #93370d;
+}
+.aviso--error {
+  background: #fef3f2;
+  border-color: #fecdca;
+  color: var(--red-dark);
+}
+.aviso--ok {
+  background: #ecfdf3;
+  border-color: #abefc6;
+  color: #067647;
+}
+
+/* ===== Estados de pantalla completa ===== */
+.pantalla-estado {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--text-gray);
+}
+.pantalla-estado h2 {
+  font-size: 18px;
+  color: var(--text-dark);
+}
+.pantalla-estado p {
+  font-size: 14px;
+  max-width: 460px;
+}
+.spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid #e4e7ec;
+  border-top-color: var(--primary-blue);
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}

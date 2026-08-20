@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="Belaunzaran SA">
+  <title>Belaunzaran SA</title>
+  <!--
+    Reconstrucción vectorial de la marca, usada como respaldo mientras no esté el archivo
+    original en `public/logo-belaunzaran.png`. Al dejar el PNG, el componente LogoEmpresa lo
+    prefiere sin tocar código.
+  -->
+  <g fill="none" stroke="#333f48" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Figura izquierda: cuerpo redondeado con base ondulada, pico y cola -->
+    <path d="M126 258 L74 210" />
+    <path d="M126 262
+             C 126 176 232 132 320 138
+             C 430 146 512 236 519 372
+             C 524 452 505 502 486 522
+             C 430 452 300 440 188 546
+             C 146 486 126 396 126 262 Z" />
+    <path d="M519 300
+             C 560 268 606 274 630 306
+             C 648 330 650 348 646 366" />
+
+    <!-- Figura derecha: antena, cabeza ovalada y cuerpo circular abierto con cola -->
+    <path d="M914 78 L914 152" />
+    <ellipse cx="914" cy="234" rx="92" ry="80" />
+    <path d="M846 528
+             C 812 500 790 458 790 414
+             C 790 344 846 306 914 306
+             C 982 306 1040 344 1040 414
+             C 1040 466 1020 502 1000 526" />
+    <path d="M1000 526
+             C 1024 500 1058 494 1082 508" />
+  </g>
+
+  <line x1="46" y1="666" x2="1154" y2="666" stroke="#333f48" stroke-width="5" />
+
+  <text x="600" y="784"
+        text-anchor="middle"
+        fill="#333f48"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="86"
+        letter-spacing="26">BELAUNZARAN SA</text>
+</svg>

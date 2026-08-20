@@ -1,0 +1,130 @@
+/*
+ * Armazón de la app: barra de contexto arriba (marca + operación + etapas), cuerpo scrollable y
+ * pie de acción fijo. La app ocupa la ventana entera, tanto embebida en Monday como suelta.
+ */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  /* Contenedor de consulta: la cabecera se reordena según el ancho REAL del panel, que dentro
+     de Monday depende de los paneles laterales abiertos, no del viewport. */
+  container-type: inline-size;
+}
+
+/* ===== Cabecera ===== */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #fff;
+  border-bottom: 1px solid #e4e7ec;
+  padding: 12px 24px 0;
+}
+.topbar-in {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+/* Los selectores de contexto viven a la izquierda; el logo se ancla a la derecha. */
+.topbar-ctx {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.topbar-marca {
+  flex: 0 0 auto;
+  margin-left: auto;
+  align-self: center;
+}
+.topbar-steps {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  padding: 12px 0 14px;
+}
+
+/* ===== Cuerpo ===== */
+.scroll {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 24px 28px;
+}
+.view {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+/* ===== Pie de acción =====
+   Siempre visible: en el celular es el único lugar donde el usuario busca el botón de avanzar. */
+.footbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: #fff;
+  border-top: 1px solid #e4e7ec;
+  padding: 12px 24px;
+  box-shadow: 0 -2px 10px rgba(16, 24, 40, 0.05);
+}
+.footbar-in {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+.footbar-msg {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-gray);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.footbar-msg--bloqueo {
+  color: var(--red-dark);
+  font-weight: 600;
+}
+.footbar-acciones {
+  display: flex;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+/* ===== Celular =====
+   Debajo de 720px la app se usa con el pulgar: menos padding lateral, controles a lo ancho y
+   el pie con los botones ocupando toda la línea. */
+@media (max-width: 720px) {
+  .topbar {
+    padding: 10px 14px 0;
+  }
+  .scroll {
+    padding: 14px 14px 22px;
+  }
+  .footbar {
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .footbar-in {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footbar-msg {
+    flex: 1 0 100%;
+    order: -1;
+  }
+  .footbar-acciones {
+    flex: 1 1 100%;
+  }
+  .footbar-acciones .btn {
+    flex: 1;
+  }
+}
