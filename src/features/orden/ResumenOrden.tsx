@@ -1,6 +1,6 @@
 import type { BorradorOrden, Catalogos } from '@/types'
 import { aNumero, usd } from '@/lib/format'
-import { buscar, lineasCargadas } from '@/lib/orden'
+import { buscar, lineasCargadas, maquinariasElegidas } from '@/lib/orden'
 
 interface Props {
   catalogos: Catalogos
@@ -22,6 +22,7 @@ export function ResumenOrden({ catalogos, borrador, onEditar }: Props) {
   const valor = aNumero(borrador.usdPorHa)
 
   const datos = [
+    { lbl: 'Realizado por', val: borrador.realizadoPor },
     { lbl: 'Labor', val: labor?.nombre },
     { lbl: 'Proveedor', val: proveedor?.nombre },
     { lbl: 'Cultivo', val: cultivo?.nombre },
@@ -37,6 +38,17 @@ export function ResumenOrden({ catalogos, borrador, onEditar }: Props) {
     datos.push({
       lbl: 'Productos',
       val: `${productos.length} insumo${productos.length === 1 ? '' : 's'}`,
+    })
+  }
+
+  const maquinarias = maquinariasElegidas(catalogos.maquinarias, borrador.maquinariaIds)
+  if (maquinarias.length > 0) {
+    datos.push({
+      lbl: 'Maquinaria',
+      val:
+        maquinarias.length === 1
+          ? maquinarias[0].nombre
+          : `${maquinarias.length} equipos`,
     })
   }
 

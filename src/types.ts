@@ -80,10 +80,21 @@ export interface Producto extends ItemBasico {
   cantPorHaSugerida: number | null
   precioUnitario: number | null
   /**
-   * Etiqueta exacta del dropdown de subitems de la orden (`"<nombre> - <unidad>"`). Se arma acá
-   * porque es el valor que Make necesita para completar la columna del subitem.
+   * Etiqueta oficial del producto, tal como está cargada en su propia columna del tablero
+   * (`"<nombre> - <unidad>"`). Es el texto que se muestra en la app y el que se escribe en el
+   * dropdown del subitem de la orden.
    */
-  etiquetaDropdown: string
+  etiqueta: string
+}
+
+/** 🛠️🚜 Maquinarias, Herramientas y Rodados (18410927187). */
+export interface Maquinaria extends ItemBasico {
+  /** TRACTOR, RASTRA, CHIMANGO… (`color_mm34705g`). */
+  tipo: string
+  /** MAQUINARIA, HERRAMIENTA, RODADO, REPUESTO (`color_mm34wmm9`). */
+  clasificacion: string
+  marca: string
+  patente: string
 }
 
 /** Catálogos que la app trae de una sola vez al abrir la operación. */
@@ -95,6 +106,16 @@ export interface Catalogos {
   contactos: Contacto[]
   campos: Campo[]
   productos: Producto[]
+  maquinarias: Maquinaria[]
+  /**
+   * Opciones de filtro leídas de los `settings` de las columnas al abrir la app, no escritas a
+   * mano: si mañana agregan un tipo de producto o de maquinaria en Monday, aparece solo.
+   */
+  filtros: {
+    tiposProducto: string[]
+    tiposMaquinaria: string[]
+    clasificacionesMaquinaria: string[]
+  }
 }
 
 /**
@@ -119,6 +140,11 @@ export interface BloqueCampo {
 
 /** Estado del formulario completo de la orden. */
 export interface BorradorOrden {
+  /**
+   * Etiqueta de `color_mm1ftcaf`: "Contratista" o "Personal de la Empresa". Va primero porque es
+   * lo que acota la lista de proveedores.
+   */
+  realizadoPor: string | null
   laborId: string | null
   proveedorId: string | null
   cultivoId: string | null
@@ -128,6 +154,8 @@ export interface BorradorOrden {
   contactoId: string | null
   /** Productos a aplicar. Los mismos, con la misma dosis, para todos los lotes de la carga. */
   productos: LineaProducto[]
+  /** Maquinarias afectadas a la labor. Opcional: puede ir ninguna, una o varias. */
+  maquinariaIds: string[]
   bloques: BloqueCampo[]
 }
 
@@ -170,17 +198,43 @@ export interface OrdenAGenerar {
   totalUsd: number | null
 }
 
-/** Payload que se le entrega a Make para que cree los items en Monday. */
-export interface PayloadEmision {
+/**
+ * Carga lista para escribirse en Monday: todas las referencias ya resueltas a items concretos.
+ * Lo que es común a la carga (labor, proveedor, cultivo…) vive arriba; lo que cambia por orden
+ * (campo, lote, hectáreas, productos) vive en `ordenes`.
+ */
+export interface CargaAEmitir {
   operacion: Operacion
-  boardOrdenTrabajo: string
+  realizadoPor: string
   labor: ItemBasico
   proveedor: ItemBasico
   cultivo: ItemBasico
   campana: ItemBasico
+  /**
+   * Contacto elegido. Va sólo como referencia: la columna de la orden es un espejo del proveedor
+   * y la API no la deja escribir.
+   */
   contacto: (ItemBasico & { telefono: string; email: string }) | null
+  maquinarias: ItemBasico[]
   usdPorHa: number
   ordenes: OrdenAGenerar[]
+}
+
+/** Resultado de crear una orden en el tablero. */
+export interface ResultadoOrden {
+  orden: OrdenAGenerar
+  itemId: string | null
+  subitemsCreados: number
+  /** Mensaje del fallo si la orden no se pudo crear. */
+  error: string | null
+}
+
+/** Avance de la emisión, para que el botón no quede mudo mientras se crean N órdenes. */
+export interface AvanceEmision {
+  hechas: number
+  total: number
+  /** Nombre del lote que se está creando en este momento. */
+  actual: string
 }
 
 /** Totales de toda la carga, para las métricas del resumen. */

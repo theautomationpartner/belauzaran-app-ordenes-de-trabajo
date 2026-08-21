@@ -13,6 +13,7 @@ import type {
   Cultivo,
   Labor,
   Lote,
+  Maquinaria,
   Producto,
   Proveedor,
 } from '@/types'
@@ -24,6 +25,7 @@ import {
   COL_CULTIVO,
   COL_LABOR,
   COL_LOTE,
+  COL_MAQUINARIA,
   COL_PRODUCTO,
   COL_PROVEEDOR,
   PRODUCTO_ESTADOS_VALIDOS,
@@ -215,6 +217,7 @@ async function traerProductos(): Promise<Producto[]> {
     COL_PRODUCTO.tipo,
     COL_PRODUCTO.cantPorHa,
     COL_PRODUCTO.precioUnitario,
+    COL_PRODUCTO.etiqueta,
   )}) { ${CAMPOS_COLUMNA} }`
   const items = await traerItems(TABLEROS.productos, seleccion, 300)
 
@@ -223,6 +226,7 @@ async function traerProductos(): Promise<Producto[]> {
       const cols = porId(it.column_values)
       const nombre = it.name.replace(/\s+/g, ' ').trim()
       const unidad = texto(cols, COL_PRODUCTO.unidad)
+      const etiqueta = texto(cols, COL_PRODUCTO.etiqueta)
       return {
         id: it.id,
         nombre,
@@ -231,25 +235,114 @@ async function traerProductos(): Promise<Producto[]> {
         tipo: texto(cols, COL_PRODUCTO.tipo),
         cantPorHaSugerida: numero(cols, COL_PRODUCTO.cantPorHa),
         precioUnitario: numero(cols, COL_PRODUCTO.precioUnitario),
-        // El dropdown del subitem rotula los productos como "<nombre> - <unidad>".
-        etiquetaDropdown: unidad ? `${nombre} - ${unidad}` : nombre,
+        /* La etiqueta viene cargada en el tablero y coincide con las opciones del dropdown del
+           subitem. El respaldo compuesto sólo actúa si algún producto nuevo todavía no la tiene. */
+        etiqueta: etiqueta || (unidad ? `${nombre} - ${unidad}` : nombre),
       }
     })
     .filter((p) => PRODUCTO_ESTADOS_VALIDOS.includes(p.estado))
+    .sort((a, b) => a.etiqueta.localeCompare(b.etiqueta, 'es'))
+}
+
+/** 🛠️🚜 Maquinarias, Herramientas y Rodados. */
+async function traerMaquinarias(): Promise<Maquinaria[]> {
+  const seleccion = `column_values(ids: ${ids(
+    COL_MAQUINARIA.tipo,
+    COL_MAQUINARIA.clasificacion,
+    COL_MAQUINARIA.marca,
+    COL_MAQUINARIA.patente,
+  )}) { ${CAMPOS_COLUMNA} }`
+  const items = await traerItems(TABLEROS.maquinarias, seleccion)
+
+  return items
+    .map((it) => {
+      const cols = porId(it.column_values)
+      return {
+        id: it.id,
+        nombre: it.name.replace(/\s+/g, ' ').trim(),
+        tipo: texto(cols, COL_MAQUINARIA.tipo),
+        clasificacion: texto(cols, COL_MAQUINARIA.clasificacion),
+        marca: texto(cols, COL_MAQUINARIA.marca),
+        patente: texto(cols, COL_MAQUINARIA.patente),
+      }
+    })
     .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+}
+
+interface ColumnaConfig {
+  id: string
+  settings_str: string | null
+}
+
+/**
+ * Lee las opciones de una columna `status` o `dropdown` desde su configuración.
+ *
+ * Se consultan en vivo en lugar de listarlas en el código: los tipos de producto y de maquinaria
+ * los administran ellos en Monday, y una lista escrita a mano quedaría vieja el día que agreguen
+ * uno. `status` guarda las etiquetas como objeto indexado y `dropdown` como arreglo, así que hay
+ * que contemplar las dos formas.
+ */
+async function traerEtiquetas(boardId: string, columnaIds: string[]): Promise<string[][]> {
+  const query = `query {
+    boards(ids: ${boardId}) {
+      columns(ids: ${JSON.stringify(columnaIds)}) { id settings_str }
+    }
+  }`
+  const data: { boards: { columns: ColumnaConfig[] }[] } = await mondayApi(query)
+  const columnas = data.boards[0]?.columns ?? []
+
+  return columnaIds.map((id) => {
+    const cruda = columnas.find((c) => c.id === id)?.settings_str
+    if (!cruda) return []
+    try {
+      const cfg = JSON.parse(cruda) as {
+        labels?: Record<string, string> | { id: number; name: string }[]
+      }
+      const etiquetas = Array.isArray(cfg.labels)
+        ? cfg.labels.map((l) => l.name)
+        : Object.values(cfg.labels ?? {})
+      return etiquetas.filter(Boolean).sort((a, b) => a.localeCompare(b, 'es'))
+    } catch {
+      return []
+    }
+  })
 }
 
 /** Trae los catálogos en paralelo: la espera total es la del tablero más lento, no la suma. */
 export async function traerCatalogos(): Promise<Catalogos> {
-  const [labores, proveedores, cultivos, campanas, contactos, campos, productos] =
-    await Promise.all([
-      traerLabores(),
-      traerProveedores(),
-      traerCultivos(),
-      traerCampanas(),
-      traerContactos(),
-      traerCampos(),
-      traerProductos(),
-    ])
-  return { labores, proveedores, cultivos, campanas, contactos, campos, productos }
+  const [
+    labores,
+    proveedores,
+    cultivos,
+    campanas,
+    contactos,
+    campos,
+    productos,
+    maquinarias,
+    [tiposProducto],
+    [tiposMaquinaria, clasificacionesMaquinaria],
+  ] = await Promise.all([
+    traerLabores(),
+    traerProveedores(),
+    traerCultivos(),
+    traerCampanas(),
+    traerContactos(),
+    traerCampos(),
+    traerProductos(),
+    traerMaquinarias(),
+    traerEtiquetas(TABLEROS.productos, [COL_PRODUCTO.tipo]),
+    traerEtiquetas(TABLEROS.maquinarias, [COL_MAQUINARIA.tipo, COL_MAQUINARIA.clasificacion]),
+  ])
+
+  return {
+    labores,
+    proveedores,
+    cultivos,
+    campanas,
+    contactos,
+    campos,
+    productos,
+    maquinarias,
+    filtros: { tiposProducto, tiposMaquinaria, clasificacionesMaquinaria },
+  }
 }

@@ -10,15 +10,16 @@ import type {
   Catalogos,
   Contacto,
   LineaProducto,
+  CargaAEmitir,
+  Maquinaria,
   OrdenAGenerar,
-  PayloadEmision,
   Producto,
   ProductoDeOrden,
   Proveedor,
   TotalesCarga,
 } from '@/types'
 import { aNumero } from './format'
-import { TABLEROS } from '@/services/monday/columns'
+import { REALIZADO_POR } from '@/services/monday/columns'
 
 let contador = 0
 /** Clave local de un bloque o de una línea. No usa `crypto.randomUUID` para no depender de HTTPS. */
@@ -26,19 +27,49 @@ export const nuevoUid = (): string => `b${++contador}`
 
 /** Borrador vacío: un bloque de campo y una línea de producto listos para completar. */
 export const borradorInicial = (): BorradorOrden => ({
+  realizadoPor: null,
   laborId: null,
   proveedorId: null,
   cultivoId: null,
   campanaId: null,
   usdPorHa: '',
   contactoId: null,
-  productos: [{ uid: nuevoUid(), productoId: null, cantPorHa: '' }],
+  productos: [],
+  maquinariaIds: [],
   bloques: [{ uid: nuevoUid(), campoId: null, loteIds: [] }],
 })
 
-/** Sólo se ofrecen proveedores activos: los bloqueados no pueden recibir una orden. */
-export const proveedoresElegibles = (proveedores: Proveedor[]): Proveedor[] =>
-  proveedores.filter((p) => p.estado === 'Activo')
+/** Etiquetas disponibles para "Realizado por". */
+export const opcionesRealizadoPor = (): string[] => REALIZADO_POR.map((r) => r.etiqueta)
+
+/**
+ * Proveedores que pueden ejecutar la labor.
+ *
+ * Se filtra por dos cosas: que estén activos, y que su tipo se corresponda con quién va a hacer
+ * el trabajo (Contratista → "Contratista Labores", Personal de la Empresa → "Personal interno").
+ * Sin elegir primero el "realizado por" no se ofrece ninguno: la lista completa mezcla fleteros y
+ * proveedores de insumos, que no hacen labores.
+ */
+export function proveedoresElegibles(
+  proveedores: Proveedor[],
+  realizadoPor: string | null,
+): Proveedor[] {
+  const activos = proveedores.filter((p) => p.estado === 'Activo')
+  if (!realizadoPor) return []
+
+  const tipoEsperado = REALIZADO_POR.find((r) => r.etiqueta === realizadoPor)?.tipoProveedor
+  if (!tipoEsperado) return activos
+  return activos.filter((p) => p.tipos.includes(tipoEsperado))
+}
+
+/** Maquinarias elegidas, en el orden del catálogo. */
+export const maquinariasElegidas = (
+  maquinarias: Maquinaria[],
+  ids: string[],
+): Maquinaria[] => {
+  const elegidas = new Set(ids)
+  return maquinarias.filter((m) => elegidas.has(m.id))
+}
 
 /**
  * Contactos a los que se le puede mandar la orden de un proveedor: SÓLO los que tienen a ese
@@ -98,6 +129,7 @@ export const lineasCargadas = (borrador: BorradorOrden): LineaProducto[] =>
  */
 export function faltantesDatos(borrador: BorradorOrden, catalogos: Catalogos): string[] {
   const faltan: string[] = []
+  if (!borrador.realizadoPor) faltan.push('Indicá quién va a realizar la labor.')
   if (!borrador.laborId) faltan.push('Elegí la labor.')
   if (!borrador.proveedorId) faltan.push('Elegí el proveedor / contratista.')
   if (!borrador.cultivoId) faltan.push('Elegí el cultivo.')
@@ -186,7 +218,7 @@ function productosPara(
       productoId: producto.id,
       nombre: producto.nombre,
       unidad: producto.unidad,
-      etiqueta: producto.etiquetaDropdown,
+      etiqueta: producto.etiqueta,
       cantPorHa,
       cantTotal,
       precioUnitario: producto.precioUnitario,
@@ -266,10 +298,10 @@ export function totalesDe(ordenes: OrdenAGenerar[]): TotalesCarga {
 }
 
 /**
- * Arma el payload que consume Make para crear un item por orden, con sus subitems de producto.
- * Devuelve `null` si el borrador está incompleto: emitir a medias crearía órdenes rotas.
+ * Resuelve el borrador a una carga lista para escribirse en Monday.
+ * Devuelve `null` si falta algo: emitir a medias crearía órdenes rotas en el tablero.
  */
-export function armarPayload(borrador: BorradorOrden, catalogos: Catalogos): PayloadEmision | null {
+export function armarCarga(borrador: BorradorOrden, catalogos: Catalogos): CargaAEmitir | null {
   const labor = buscar(catalogos.labores, borrador.laborId)
   const proveedor = buscar(catalogos.proveedores, borrador.proveedorId)
   const cultivo = buscar(catalogos.cultivos, borrador.cultivoId)
@@ -278,7 +310,15 @@ export function armarPayload(borrador: BorradorOrden, catalogos: Catalogos): Pay
   const usdPorHa = aNumero(borrador.usdPorHa)
   const ordenes = expandirOrdenes(borrador, catalogos)
 
-  if (!labor || !proveedor || !cultivo || !campana || usdPorHa == null || ordenes.length === 0) {
+  if (
+    !borrador.realizadoPor ||
+    !labor ||
+    !proveedor ||
+    !cultivo ||
+    !campana ||
+    usdPorHa == null ||
+    ordenes.length === 0
+  ) {
     return null
   }
 
@@ -286,7 +326,7 @@ export function armarPayload(borrador: BorradorOrden, catalogos: Catalogos): Pay
 
   return {
     operacion: 'ORDEN_DE_TRABAJO',
-    boardOrdenTrabajo: TABLEROS.ordenTrabajo,
+    realizadoPor: borrador.realizadoPor,
     labor: soloIdNombre(labor),
     proveedor: soloIdNombre(proveedor),
     cultivo: soloIdNombre(cultivo),
@@ -294,6 +334,9 @@ export function armarPayload(borrador: BorradorOrden, catalogos: Catalogos): Pay
     contacto: contacto
       ? { ...soloIdNombre(contacto), telefono: contacto.telefono, email: contacto.email }
       : null,
+    maquinarias: maquinariasElegidas(catalogos.maquinarias, borrador.maquinariaIds).map(
+      soloIdNombre,
+    ),
     usdPorHa,
     ordenes,
   }

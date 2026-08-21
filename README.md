@@ -19,7 +19,6 @@ npm run dev                        # http://localhost:5181
 | --- | --- | --- |
 | `VITE_MONDAY_TOKEN` | `.env.local` (desarrollo) | Token de la API de Monday de Belaunzaran. |
 | `MONDAY_TOKEN` | entorno del deploy | Mismo token, del lado servidor (`api/monday.ts`). |
-| `VITE_MAKE_WEBHOOK_URL` | `.env.local` | Webhook de Make que crea los items de la orden. |
 
 **El token nunca se sube al repositorio.** `.env.local` está en `.gitignore`. En desarrollo el token
 lo inyecta el proxy de Vite; en producción lo inyecta la función serverless `api/monday.ts`, así que
@@ -36,7 +35,7 @@ el bundle que llega al navegador no lo contiene.
    campos como haga falta; un lote no se puede repetir entre bloques.
 4. **Revisar y emitir** — la app expande la carga a **una orden por lote** (el tablero admite un
    campo y un lote por item), recalcula las cantidades de producto con las hectáreas de cada lote
-   y manda el payload al webhook de Make.
+   y las crea directamente en el tablero.
 
 ## Tableros de Monday
 
@@ -63,7 +62,7 @@ src/
   lib/orden.ts              reglas del negocio (validaciones, expansión a órdenes, payload)
   lib/format.ts             formato es-AR y lectura de números tipeados
   services/monday/          sdk, ids de columnas, parseo y carga de catálogos
-  services/emision.ts       entrega del payload a Make
+  services/monday/crearOrdenes.ts  creacion de los items y subitems en el tablero
   components/ui/            Stepper, SelectorBuscable, LogoEmpresa, PasoHeader
   features/orden/           las cuatro etapas + la banda de resumen
   styles/                   tokens y componentes (mismo sistema que Operaciones de Venta)
@@ -74,11 +73,6 @@ src/
 `public/logo-belaunzaran.png` es el archivo que usa la cabecera. Mientras no esté, se muestra la
 reconstrucción vectorial `public/logo-belaunzaran.svg`. Para cambiar la marca alcanza con reemplazar
 el archivo: no hay que tocar código.
-
-## Pendientes conocidos
-
-- **Webhook de Make**: sin `VITE_MAKE_WEBHOOK_URL` el botón de emitir queda deshabilitado. La
-  revisión del paso 3 igual muestra las órdenes exactas que se van a crear.
 
 ## Deploy en Vercel
 
@@ -91,3 +85,45 @@ variable de entorno:
 
 Si falta esa variable, la app carga pero no trae datos: la función responde 500 y en pantalla se
 lee el motivo.
+
+## Qué escribe la app en Monday
+
+Al emitir se crea **un elemento por cada par campo + lote** en ✋ Orden de Trabajo, y debajo de
+cada uno **un subelemento por producto**. Todas nacen con `🤖 Estado de Envio` en
+**NO Enviar por Ahora**: quedan cargadas y revisables sin disparar el envío al contratista.
+
+El nombre sigue la convención del tablero: `LABOR-PROVEEDOR-LOTE-CULTIVO-CAMPAÑA`.
+
+### Elemento
+
+| Dato | Columna |
+| --- | --- |
+| Realizado por | `color_mm1ftcaf` |
+| Labor | `board_relation_mm09xk5g` |
+| Proveedor | `board_relation_mm09w3bc` |
+| Cultivo | `board_relation_mm38x2ka` |
+| Campaña | `board_relation_mm3850rb` |
+| Campo | `board_relation_mm38qn0k` |
+| Lote | `board_relation_mm31x8fe` |
+| Pago por hectárea | `numeric_mm09rwxd` |
+| Maquinaria | `board_relation_mm3jkkcw` |
+| Estado de envío | `color_mm0xaytt` → `NO Enviar por Ahora` |
+
+### Subelemento (uno por producto)
+
+| Dato | Columna |
+| --- | --- |
+| Producto | `dropdown_mm3cg47g` (etiqueta de `dropdown_mm3ca3dn` del producto) |
+| Cantidad por hectárea | `numeric_mm3869nh` |
+| Hectáreas del lote | `numeric_mm3fvr3q` |
+
+### Números
+
+Se tipean en formato local (`1.500,75`) y viajan a Monday como `1500.75`: punto decimal y sin
+separador de miles. La conversión está en `aNumero` / `aTextoMonday` (`src/lib/format.ts`).
+
+### Contacto
+
+`lookup_mm3c273r` es una columna **mirror** y la API no permite escribirla: se completa sola con
+los contactos del proveedor conectado. El contacto que se elige en la app sirve para validar que
+el proveedor tenga a quién avisarle, pero no se puede grabar como valor propio de la orden.

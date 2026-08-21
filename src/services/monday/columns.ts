@@ -17,6 +17,7 @@ export const TABLEROS = {
   productos: '18410927152',
   /** Subitems de la orden: cada producto usado es uno de estos. */
   productosOT: '18410927290',
+  maquinarias: '18410927187',
 } as const
 
 /** ✋ Orden de Trabajo (18410927171) — columnas que completa esta app. */
@@ -30,7 +31,30 @@ export const COL_OT = {
   usdPorHa: 'numeric_mm09rwxd',
   realizadoPor: 'color_mm1ftcaf',
   estadoEnvio: 'color_mm0xaytt',
+  maquinarias: 'board_relation_mm3jkkcw',
+  /**
+   * Contacto. Es una columna MIRROR: refleja los contactos del proveedor conectado y la API de
+   * Monday no permite escribirla. Queda documentada para que se entienda por qué la app no la
+   * completa aunque el usuario elija un contacto puntual (ver `crearOrdenes.ts`).
+   */
+  contactoEspejo: 'lookup_mm3c273r',
 } as const
+
+/**
+ * Estado con el que nacen todas las órdenes. Es deliberado: deja el item cargado en el tablero
+ * sin disparar el envío, para que alguien lo revise y recién entonces lo mande.
+ */
+export const OT_ESTADO_ENVIO_INICIAL = 'NO Enviar por Ahora'
+
+/**
+ * Quién ejecuta la labor (`color_mm1ftcaf`) y con qué tipo de proveedor se corresponde
+ * (`dropdown_mm39x0j7` del tablero de Proveedores). Elegir esto primero es lo que reduce la
+ * lista de proveedores a los que realmente pueden hacer ese trabajo.
+ */
+export const REALIZADO_POR = [
+  { etiqueta: 'Contratista', tipoProveedor: 'Contratista Labores' },
+  { etiqueta: 'Personal de la Empresa', tipoProveedor: 'Personal interno' },
+] as const
 
 /** ✋ Proveedores (18410927151). */
 export const COL_PROVEEDOR = {
@@ -74,6 +98,20 @@ export const COL_PRODUCTO = {
   /** Cantidad por hectárea de referencia; se propone como valor inicial al agregar el producto. */
   cantPorHa: 'numeric_mm12vxqy',
   precioUnitario: 'numeric_mm3589e9',
+  /**
+   * Etiqueta oficial del producto (`"<nombre> - <unidad>"`). Es el MISMO texto que usa el dropdown
+   * del subitem, así que se lee de acá en vez de componerlo: los 215 productos activos la tienen
+   * cargada y coincide 1 a 1 con las opciones del subitem.
+   */
+  etiqueta: 'dropdown_mm3ca3dn',
+} as const
+
+/** 🛠️🚜 Maquinarias, Herramientas y Rodados (18410927187). */
+export const COL_MAQUINARIA = {
+  tipo: 'color_mm34705g',
+  clasificacion: 'color_mm34wmm9',
+  marca: 'text_mm34jp2t',
+  patente: 'text_mm345g3d',
 } as const
 
 /** Productos que no se ofrecen para cargar: sólo entran los activos o los recién dados de alta. */

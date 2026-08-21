@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { BorradorOrden, Catalogos } from '@/types'
+import type { AvanceEmision, BorradorOrden, Catalogos, ResultadoOrden } from '@/types'
 import { LogoEmpresa } from '@/components/ui/LogoEmpresa'
 import { Stepper } from '@/components/ui/Stepper'
 import { SelectorBuscable } from '@/components/ui/SelectorBuscable'
@@ -9,9 +9,9 @@ import { Paso3Campos } from '@/features/orden/Paso3Campos'
 import { Paso4Emision } from '@/features/orden/Paso4Emision'
 import { traerCatalogos } from '@/services/monday/catalogos'
 import { mondayHabilitado } from '@/services/monday/sdk'
-import { emisionHabilitada, emitirOrdenes } from '@/services/emision'
+import { crearOrdenes } from '@/services/monday/crearOrdenes'
 import {
-  armarPayload,
+  armarCarga,
   borradorInicial,
   expandirOrdenes,
   faltantesCampos,
@@ -31,8 +31,8 @@ type EstadoCarga =
 
 type EstadoEmision =
   | { fase: 'inactivo' }
-  | { fase: 'enviando' }
-  | { fase: 'ok'; cantidad: number }
+  | { fase: 'enviando'; avance: AvanceEmision }
+  | { fase: 'terminado'; resultados: ResultadoOrden[] }
   | { fase: 'error'; mensaje: string }
 
 export function App() {
@@ -70,12 +70,19 @@ export function App() {
   const catalogos = carga.fase === 'listo' ? carga.catalogos : null
 
   /**
-   * Cambiar de proveedor invalida el contacto elegido: los contactos se filtran por proveedor, y
-   * mantener el anterior dejaría cargado un destinatario que ya no corresponde.
+   * Aplica un cambio y limpia lo que ese cambio invalida.
+   *
+   * Los campos del paso 1 están encadenados: "realizado por" acota los proveedores y el proveedor
+   * acota los contactos. Si cambia uno de arriba, lo de abajo deja de corresponder, y arrastrar el
+   * valor viejo escribiría en Monday una combinación que el usuario nunca eligió.
    */
   const actualizar = (parcial: Partial<BorradorOrden>) => {
     setBorrador((prev) => {
       const proximo = { ...prev, ...parcial }
+      if (parcial.realizadoPor !== undefined && parcial.realizadoPor !== prev.realizadoPor) {
+        proximo.proveedorId = null
+        proximo.contactoId = null
+      }
       if (parcial.proveedorId !== undefined && parcial.proveedorId !== prev.proveedorId) {
         proximo.contactoId = null
       }
@@ -113,15 +120,21 @@ export function App() {
 
   const emitir = async () => {
     if (!catalogos) return
-    const payload = armarPayload(borrador, catalogos)
-    if (!payload) {
-      setEmision({ fase: 'error', mensaje: 'El borrador está incompleto.' })
+    const carga = armarCarga(borrador, catalogos)
+    if (!carga) {
+      setEmision({ fase: 'error', mensaje: 'La carga está incompleta.' })
       return
     }
-    setEmision({ fase: 'enviando' })
+
+    setEmision({
+      fase: 'enviando',
+      avance: { hechas: 0, total: carga.ordenes.length, actual: '' },
+    })
     try {
-      await emitirOrdenes(payload)
-      setEmision({ fase: 'ok', cantidad: payload.ordenes.length })
+      const resultados = await crearOrdenes(carga, (avance) =>
+        setEmision({ fase: 'enviando', avance }),
+      )
+      setEmision({ fase: 'terminado', resultados })
     } catch (e: unknown) {
       setEmision({ fase: 'error', mensaje: e instanceof Error ? e.message : String(e) })
     }
@@ -190,25 +203,73 @@ export function App() {
     )
   }
 
-  // Emisión exitosa: la pantalla se dedica a confirmar y a ofrecer cargar la siguiente orden.
-  if (emision.fase === 'ok') {
+  /* Emisión terminada. Se detalla orden por orden en vez de dar un "listo" global: como los
+     fallos no cortan el lote, puede haber órdenes creadas y otras no, y el usuario necesita
+     saber exactamente cuáles rehacer. */
+  if (emision.fase === 'terminado') {
+    const creadas = emision.resultados.filter((r) => r.itemId)
+    const fallidas = emision.resultados.filter((r) => !r.itemId)
+    const subitems = creadas.reduce((acc, r) => acc + r.subitemsCreados, 0)
+
     return (
       <div className="app">
         {cabecera}
-        <div className="pantalla-estado">
-          <i className="fas fa-circle-check" style={{ fontSize: 42, color: '#00c875' }} aria-hidden />
-          <h2>
-            {emision.cantidad} orden{emision.cantidad === 1 ? '' : 'es'} de trabajo enviada
-            {emision.cantidad === 1 ? '' : 's'}
-          </h2>
-          <p>
-            Make ya recibió la carga y está creando los items en el tablero ✋ Orden de Trabajo, uno
-            por cada lote.
-          </p>
-          <button type="button" className="btn btn-primary" onClick={empezarDeNuevo}>
-            <i className="fas fa-plus" aria-hidden /> Cargar otra orden
-          </button>
-        </div>
+        <main className="scroll">
+          <div className="view">
+            <div className={`card ${fallidas.length === 0 ? 'card--summary' : 'card--data'}`}>
+              <div className="ctitle">
+                <i
+                  className={`fas fa-${fallidas.length === 0 ? 'circle-check' : 'triangle-exclamation'}`}
+                  style={{ color: fallidas.length === 0 ? '#00874d' : '#b25e09' }}
+                  aria-hidden
+                />
+                {creadas.length} orden{creadas.length === 1 ? '' : 'es'} de trabajo creada
+                {creadas.length === 1 ? '' : 's'}
+                {fallidas.length > 0 && ` · ${fallidas.length} con error`}
+              </div>
+              <div className="csub">
+                {subitems > 0 && `${subitems} producto${subitems === 1 ? '' : 's'} cargado${subitems === 1 ? '' : 's'} como subelementos. `}
+                Todas quedaron en estado <strong>NO Enviar por Ahora</strong>.
+              </div>
+
+              <div className="resultados-lista">
+                {emision.resultados.map((r) => (
+                  <div
+                    className={`resultado-orden ${r.itemId ? '' : 'resultado-orden--error'}`}
+                    key={r.orden.loteId}
+                  >
+                    <i
+                      className={`fas fa-${r.itemId ? 'circle-check' : 'circle-xmark'}`}
+                      aria-hidden
+                    />
+                    <span className="resultado-orden-body">
+                      <span className="font-b">{r.orden.loteNombre}</span>
+                      <span className="xs">
+                        {r.itemId
+                          ? `${r.orden.campoNombre}${r.subitemsCreados > 0 ? ` · ${r.subitemsCreados} producto${r.subitemsCreados === 1 ? '' : 's'}` : ''}`
+                          : r.error}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="acciones-bloque">
+                <button type="button" className="btn btn-primary" onClick={empezarDeNuevo}>
+                  <i className="fas fa-plus" aria-hidden /> Cargar otra orden
+                </button>
+                <a
+                  className="btn btn-out"
+                  href="https://belauzaransa.monday.com/boards/18410927171"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <i className="fas fa-arrow-up-right-from-square" aria-hidden /> Ver el tablero
+                </a>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     )
   }
@@ -282,7 +343,7 @@ export function App() {
             {bloqueado
               ? faltantes[0]
               : enUltimoPaso
-                ? `${ordenes.length} orden${ordenes.length === 1 ? '' : 'es'} de trabajo lista${ordenes.length === 1 ? '' : 's'} para emitir.`
+                ? `Se ${ordenes.length === 1 ? 'va' : 'van'} a crear ${ordenes.length} orden${ordenes.length === 1 ? '' : 'es'} en el tablero, en estado NO Enviar por Ahora.`
                 : `Siguiente: ${PASOS[paso + 1]}`}
           </span>
 
@@ -296,19 +357,18 @@ export function App() {
               <button
                 type="button"
                 className="btn btn-green"
-                disabled={bloqueado || emision.fase === 'enviando' || !emisionHabilitada()}
-                title={
-                  emisionHabilitada() ? undefined : 'El envío automático todavía no está habilitado.'
-                }
+                disabled={bloqueado || emision.fase === 'enviando'}
                 onClick={emitir}
               >
                 {emision.fase === 'enviando' ? (
                   <>
-                    <i className="fas fa-circle-notch fa-spin" aria-hidden /> Emitiendo…
+                    <i className="fas fa-circle-notch fa-spin" aria-hidden /> Creando{' '}
+                    {emision.avance.hechas + 1} de {emision.avance.total}…
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-paper-plane" aria-hidden /> Emitir y enviar
+                    <i className="fas fa-cloud-arrow-up" aria-hidden /> Crear{' '}
+                    {ordenes.length === 1 ? 'la orden' : `las ${ordenes.length} órdenes`}
                   </>
                 )}
               </button>

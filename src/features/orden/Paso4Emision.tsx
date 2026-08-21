@@ -4,7 +4,6 @@ import { PasoHeader } from '@/components/ui/PasoHeader'
 import { ResumenOrden } from './ResumenOrden'
 import { expandirOrdenes, totalesDe } from '@/lib/orden'
 import { cantidad, hectareas, usd } from '@/lib/format'
-import { emisionHabilitada } from '@/services/emision'
 
 interface Props {
   catalogos: Catalogos
@@ -44,7 +43,7 @@ function TarjetaOrden({ orden, indice }: { orden: OrdenAGenerar; indice: number 
               <tbody>
                 {orden.productos.map((p) => (
                   <tr key={p.productoId}>
-                    <td data-lbl="Producto">{p.nombre}</td>
+                    <td data-lbl="Producto">{p.etiqueta}</td>
                     <td data-lbl="Por ha" className="num">
                       {cantidad(p.cantPorHa, p.unidad)}
                     </td>
@@ -203,17 +202,15 @@ export function Paso4Emision({
         </div>
       </div>
 
-      {/* El envío es un detalle de implementación: al usuario se le dice que todavía no está
-          conectado, sin exponerle el payload ni el nombre del escenario. */}
-      {!emisionHabilitada() && (
-        <div className="aviso aviso--info">
-          <i className="fas fa-circle-info" aria-hidden />
-          <span>
-            El envío automático al tablero todavía no está habilitado. La revisión de arriba ya
-            refleja exactamente las órdenes que se van a crear.
-          </span>
-        </div>
-      )}
+      <div className="aviso aviso--info">
+        <i className="fas fa-circle-info" aria-hidden />
+        <span>
+          Al emitir se crea un elemento por orden en el tablero ✋ Orden de Trabajo, con sus
+          productos como subelementos. Todas quedan en estado{' '}
+          <strong>NO Enviar por Ahora</strong>, así que no se le manda nada al contratista hasta
+          que alguien lo habilite desde Monday.
+        </span>
+      </div>
     </div>
   )
 }

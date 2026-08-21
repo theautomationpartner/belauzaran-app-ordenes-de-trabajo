@@ -540,3 +540,221 @@
     border-top: 1px dashed var(--tint-summary-bd);
   }
 }
+
+/* ===== Buscador con filtros ===== */
+.buscador {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.buscador-fila {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.buscador-campo {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+.buscador-campo i {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-gray);
+  font-size: 13px;
+}
+.buscador-campo input {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px 0 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+  background: #fff;
+}
+.buscador-campo input:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(0, 115, 234, 0.14);
+}
+.buscador-filtro {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.buscador-filtro-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-gray);
+  flex: 0 0 auto;
+  min-width: 74px;
+}
+.pastillas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+/* Pastilla de filtro: objetivo táctil cómodo y estado activo evidente por color, no sólo borde. */
+.pastilla {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: #fff;
+  color: var(--text-gray);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: 0.12s;
+}
+.pastilla:hover {
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
+}
+.pastilla--sel {
+  background: var(--primary-blue);
+  border-color: var(--primary-blue);
+  color: #fff;
+}
+.buscador-ayuda {
+  font-size: 12.5px;
+  color: var(--text-gray);
+  margin: 0;
+}
+.buscador-cuenta {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-gray);
+}
+.resultados {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 330px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+.resultado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  min-height: 46px;
+  transition: 0.12s;
+}
+.resultado:hover:not(:disabled) {
+  border-color: var(--primary-blue);
+  background: #f0f7ff;
+}
+.resultado--puesto {
+  background: var(--campo-soft);
+  border-color: var(--campo-bd);
+  cursor: default;
+}
+.resultado-ic {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex: none;
+  background: #eff6ff;
+  color: var(--primary-blue);
+}
+.resultado--puesto .resultado-ic {
+  background: var(--campo);
+  color: #fff;
+}
+.resultado-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.resultado-tit {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.resultado-det {
+  font-size: 11.5px;
+  color: var(--text-gray);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Items ya elegidos (maquinaria) ===== */
+.elegidos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.elegido {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px 7px 12px;
+  border: 1px solid var(--campo-bd);
+  border-radius: 8px;
+  background: var(--campo-soft);
+}
+.elegido-tit {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Resultado de la emisión ===== */
+.resultados-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.resultado-orden {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--tint-summary-bd);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--green-dark);
+}
+.resultado-orden--error {
+  border-color: #fecdca;
+  background: #fef3f2;
+  color: var(--red-dark);
+}
+.resultado-orden-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  color: var(--text-dark);
+}

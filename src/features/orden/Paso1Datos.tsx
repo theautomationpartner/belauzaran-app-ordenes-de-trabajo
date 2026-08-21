@@ -1,8 +1,15 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { BorradorOrden, Catalogos } from '@/types'
 import { SelectorBuscable, type OpcionSelector } from '@/components/ui/SelectorBuscable'
+import { BuscadorAgregar, type ResultadoBusqueda } from '@/components/ui/BuscadorAgregar'
 import { PasoHeader } from '@/components/ui/PasoHeader'
-import { buscar, contactosDeProveedor, proveedoresElegibles } from '@/lib/orden'
+import {
+  buscar,
+  contactosDeProveedor,
+  maquinariasElegidas,
+  opcionesRealizadoPor,
+  proveedoresElegibles,
+} from '@/lib/orden'
 
 interface Props {
   catalogos: Catalogos
@@ -17,16 +24,19 @@ function iniciales(nombre: string): string {
 }
 
 /**
- * Paso 1 — Labor, proveedor, cultivo, campaña, valor y contacto.
+ * Paso 1 — Quién hace la labor, cuál, sobre qué y a quién se le avisa.
  *
- * El orden de los campos no es decorativo: el contacto depende del proveedor, así que va DESPUÉS
- * y se habilita recién cuando hay proveedor elegido. Elegir otro proveedor limpia el contacto
- * (lo hace `App`), porque un contacto de otro proveedor no es un dato válido.
+ * El orden de los campos no es decorativo, cada uno acota al siguiente: "realizado por" define
+ * qué proveedores se ofrecen, y el proveedor define qué contactos. Cambiar uno de arriba limpia
+ * los de abajo (lo hace `App`), porque un valor heredado dejaría de corresponder.
  */
 export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
+  const [tipoMaq, setTipoMaq] = useState<string | null>(null)
+  const [clasifMaq, setClasifMaq] = useState<string | null>(null)
+
   const proveedores = useMemo(
-    () => proveedoresElegibles(catalogos.proveedores),
-    [catalogos.proveedores],
+    () => proveedoresElegibles(catalogos.proveedores, borrador.realizadoPor),
+    [catalogos.proveedores, borrador.realizadoPor],
   )
   const proveedor = buscar(catalogos.proveedores, borrador.proveedorId)
 
@@ -39,6 +49,8 @@ export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
   // Sólo campañas activas: cargar una orden sobre una campaña cerrada no es una opción válida.
   const campanas = useMemo(() => catalogos.campanas.filter((c) => c.activa), [catalogos.campanas])
 
+  const opRealizado: OpcionSelector[] = opcionesRealizadoPor().map((e) => ({ id: e, nombre: e }))
+
   const opLabores: OpcionSelector[] = catalogos.labores.map((l) => ({
     id: l.id,
     nombre: l.nombre,
@@ -49,8 +61,6 @@ export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
     id: p.id,
     nombre: p.nombre,
     detalle: p.cuit ? `CUIT ${p.cuit}` : 'Sin CUIT cargado',
-    chip: p.tipos[0],
-    chipClase: 'chip--gris',
   }))
 
   const opCultivos: OpcionSelector[] = catalogos.cultivos.map((c) => ({
@@ -75,22 +85,76 @@ export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
     chipClase: 'chip--gris',
   }))
 
+  const universoMaquinaria: ResultadoBusqueda[] = useMemo(
+    () =>
+      catalogos.maquinarias.map((m) => ({
+        id: m.id,
+        titulo: m.nombre,
+        detalle: [m.marca, m.patente && `Patente ${m.patente}`].filter(Boolean).join(' · '),
+        chips: [m.tipo, m.clasificacion].filter(Boolean),
+      })),
+    [catalogos.maquinarias],
+  )
+
+  const maquinarias = maquinariasElegidas(catalogos.maquinarias, borrador.maquinariaIds)
+  const idsMaquinaria = useMemo(() => new Set(borrador.maquinariaIds), [borrador.maquinariaIds])
+
   return (
     <div className="view">
       <PasoHeader
         numero={1}
         titulo="Datos de la orden"
-        descripcion="Elegí la labor y el contratista que la ejecuta, sobre qué cultivo y campaña se carga, y a quién se le envía."
+        descripcion="Indicá quién hace el trabajo, qué labor es, sobre qué cultivo y campaña, y a quién se le envía."
       />
 
       <div className="card card--input">
         <div className="ctitle">
-          <i className="fas fa-tractor" style={{ color: '#0073ea' }} aria-hidden />
-          Labor y contratista
+          <i className="fas fa-user-gear" style={{ color: '#0073ea' }} aria-hidden />
+          Quién realiza la labor
         </div>
-        <div className="csub">Qué trabajo se hace y quién lo hace.</div>
+        <div className="csub">
+          Define qué proveedores se pueden elegir: los contratistas de labores o el personal
+          interno.
+        </div>
 
         <div className="grid-campos">
+          <div className="ig">
+            <label className="ig-lbl ig-req" htmlFor="sel-realizado">
+              Realizado por
+            </label>
+            <SelectorBuscable
+              id="sel-realizado"
+              opciones={opRealizado}
+              valor={borrador.realizadoPor}
+              onCambio={(id) => onCambio({ realizadoPor: id })}
+              placeholder="Contratista o personal interno…"
+              umbralBusqueda={99}
+            />
+          </div>
+
+          <div className="ig">
+            <label className="ig-lbl ig-req" htmlFor="sel-proveedor">
+              Proveedor / Contratista
+            </label>
+            <SelectorBuscable
+              id="sel-proveedor"
+              opciones={opProveedores}
+              valor={borrador.proveedorId}
+              onCambio={(id) => onCambio({ proveedorId: id })}
+              placeholder={
+                borrador.realizadoPor ? 'Seleccioná el proveedor…' : 'Elegí primero quién lo hace'
+              }
+              vacio="No hay proveedores de ese tipo."
+              disabled={!borrador.realizadoPor}
+            />
+            {borrador.realizadoPor && (
+              <span className="ig-hint">
+                {proveedores.length} proveedor{proveedores.length === 1 ? '' : 'es'} activo
+                {proveedores.length === 1 ? '' : 's'} de tipo &laquo;{borrador.realizadoPor}&raquo;.
+              </span>
+            )}
+          </div>
+
           <div className="ig">
             <label className="ig-lbl ig-req" htmlFor="sel-labor">
               Labor
@@ -104,22 +168,20 @@ export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
               vacio="No hay labores cargadas en el tablero."
             />
           </div>
-
-          <div className="ig">
-            <label className="ig-lbl ig-req" htmlFor="sel-proveedor">
-              Proveedor / Contratista
-            </label>
-            <SelectorBuscable
-              id="sel-proveedor"
-              opciones={opProveedores}
-              valor={borrador.proveedorId}
-              onCambio={(id) => onCambio({ proveedorId: id })}
-              placeholder="Seleccioná el proveedor…"
-              vacio="No hay proveedores activos."
-            />
-            <span className="ig-hint">Sólo se listan los proveedores con estado Activo.</span>
-          </div>
         </div>
+
+        {/* El tipo del proveedor se carga en Monday. Si nadie lo completó, la lista queda corta y
+            conviene decir por qué antes de que el usuario crea que faltan proveedores. */}
+        {borrador.realizadoPor && proveedores.length === 0 && (
+          <div className="aviso aviso--warn" style={{ marginTop: 14 }}>
+            <i className="fas fa-triangle-exclamation" aria-hidden />
+            <span>
+              Ningún proveedor activo tiene cargado el tipo que corresponde a{' '}
+              <strong>{borrador.realizadoPor}</strong>. Completá la columna <em>✋ Tipo</em> en el
+              tablero de Proveedores y volvé a abrir la app.
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="card card--input">
@@ -182,7 +244,7 @@ export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
         </div>
       </div>
 
-      <div className="card card--input card--flush">
+      <div className="card card--input">
         <div className="ctitle">
           <i className="fas fa-paper-plane" style={{ color: '#6200ee' }} aria-hidden />
           Envío de la orden
@@ -202,9 +264,7 @@ export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
               opciones={opContactos}
               valor={borrador.contactoId}
               onCambio={(id) => onCambio({ contactoId: id })}
-              placeholder={
-                proveedor ? 'Seleccioná el contacto…' : 'Elegí primero un proveedor'
-              }
+              placeholder={proveedor ? 'Seleccioná el contacto…' : 'Elegí primero un proveedor'}
               vacio="Este proveedor no tiene contactos vinculados."
               disabled={!proveedor}
             />
@@ -236,18 +296,78 @@ export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
           )}
         </div>
 
-        {/* El vínculo Proveedor ↔ Contacto se carga en Monday. Si falta, la app no puede
-            inventarlo: se dice qué hay que hacer, en vez de dejar el campo mudo. */}
         {proveedor && contactos.length === 0 && (
           <div className="aviso aviso--warn" style={{ marginTop: 14 }}>
             <i className="fas fa-triangle-exclamation" aria-hidden />
             <span>
               <strong>{proveedor.nombre}</strong> no tiene ningún contacto vinculado en el tablero
-              ✋ Contactos. Vinculalo en Monday (columna <em>✋ Provedores</em> del contacto, o
-              <em> 🤖Contactos</em> del proveedor) y volvé a abrir la app para poder emitir la orden.
+              ✋ Contactos. Vinculalo en Monday y volvé a abrir la app para poder emitir la orden.
             </span>
           </div>
         )}
+      </div>
+
+      <div className="card card--input card--flush">
+        <div className="ctitle" style={{ justifyContent: 'space-between' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+            <i className="fas fa-tractor" style={{ color: '#b25e09' }} aria-hidden />
+            Maquinaria
+            <span className="chip chip--gris">Opcional</span>
+          </span>
+          {maquinarias.length > 0 && (
+            <span className="chip chip--campo">
+              {maquinarias.length} seleccionada{maquinarias.length === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
+        <div className="csub">
+          Buscá por nombre, o filtrá por tipo y clasificación. Podés agregar más de una.
+        </div>
+
+        {maquinarias.length > 0 && (
+          <div className="elegidos">
+            {maquinarias.map((m) => (
+              <span className="elegido" key={m.id}>
+                <span className="elegido-tit">{m.nombre}</span>
+                {m.tipo && <span className="chip chip--gris">{m.tipo}</span>}
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-ghost--rojo btn--sm"
+                  onClick={() =>
+                    onCambio({
+                      maquinariaIds: borrador.maquinariaIds.filter((id) => id !== m.id),
+                    })
+                  }
+                  aria-label={`Quitar ${m.nombre}`}
+                >
+                  <i className="fas fa-trash-can" aria-hidden /> Quitar
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <BuscadorAgregar
+          items={universoMaquinaria}
+          agregados={idsMaquinaria}
+          onAgregar={(id) => onCambio({ maquinariaIds: [...borrador.maquinariaIds, id] })}
+          placeholder="Ej.: tractor, chimango, JD 6125…"
+          ayuda={`Hay ${catalogos.maquinarias.length} maquinarias. Buscá por nombre o marca, o combiná los filtros de abajo.`}
+          filtros={[
+            {
+              titulo: 'Tipo',
+              opciones: catalogos.filtros.tiposMaquinaria,
+              valor: tipoMaq,
+              onCambio: setTipoMaq,
+            },
+            {
+              titulo: 'Clasificación',
+              opciones: catalogos.filtros.clasificacionesMaquinaria,
+              valor: clasifMaq,
+              onCambio: setClasifMaq,
+            },
+          ]}
+        />
       </div>
     </div>
   )
