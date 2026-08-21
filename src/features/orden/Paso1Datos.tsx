@@ -82,7 +82,7 @@ export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
     nombre: c.nombre,
     detalle: [c.telefono, c.email].filter(Boolean).join(' · ') || 'Sin datos de contacto',
     chip: c.tipos[0],
-    chipClase: 'chip--gris',
+    chipClase: 'chip--violeta',
   }))
 
   const universoMaquinaria: ResultadoBusqueda[] = useMemo(
@@ -318,7 +318,7 @@ export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
             {maquinarias.map((m) => (
               <span className="elegido" key={m.id}>
                 <span className="elegido-tit">{m.nombre}</span>
-                {m.tipo && <span className="chip chip--gris">{m.tipo}</span>}
+                {m.tipo && <span className="chip chip--ambar">{m.tipo}</span>}
                 <button
                   type="button"
                   className="btn btn-ghost btn-ghost--rojo btn--sm"

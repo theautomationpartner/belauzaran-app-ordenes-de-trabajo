@@ -1041,3 +1041,20 @@
 .metrica--fuerte .metrica-val {
   color: var(--green-dark);
 }
+
+/* Cierre del selector múltiple: como el menú queda abierto para marcar varios, hace falta una
+   salida explícita además del clic afuera. */
+.dd-cerrar {
+  width: 100%;
+  padding: 9px;
+  border: none;
+  border-top: 1px solid #eef0f4;
+  background: #fff;
+  color: var(--primary-blue);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dd-cerrar:hover {
+  background: var(--hover-gris);
+}

@@ -123,7 +123,7 @@ export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }:
           <div className="ctitle">
             <i className="fas fa-flask" style={{ color: '#6200ee' }} aria-hidden />
             Productos de la orden
-            <span className="chip chip--gris">{cargadas.length}</span>
+            <span className="chip">{cargadas.length}</span>
           </div>
           <div className="csub">
             Cada uno va a ser un subelemento de la orden, con la cantidad recalculada según las

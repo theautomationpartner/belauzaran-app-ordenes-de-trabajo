@@ -256,7 +256,7 @@ export function Paso4Emision({
                 <span className="opcion-envio-body">
                   <span className="opcion-envio-tit">
                     {op.titulo}
-                    {!envia && <span className="chip chip--gris">Por defecto</span>}
+                    {!envia && <span className="chip">Por defecto</span>}
                   </span>
                   <span className="opcion-envio-det">{op.detalle}</span>
                   <span className="opcion-envio-col">

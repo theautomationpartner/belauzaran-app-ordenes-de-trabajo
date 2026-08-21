@@ -529,9 +529,17 @@
   background: #e6f9f0;
   color: var(--green-dark);
 }
-.chip--gris {
-  background: #eef0f4;
-  color: var(--text-gray);
+/* No hay chips grises: un rótulo en gris se lee como texto apagado y se pierde entre el resto
+   del encabezado. Cada familia de etiquetas tiene su color. */
+/* Tipo de contacto (Comercial, Administrativo, Personal Interno…). */
+.chip--violeta {
+  background: var(--purple-light);
+  color: var(--purple);
+}
+/* Tipo y clasificación de maquinaria. */
+.chip--ambar {
+  background: #fff3d6;
+  color: #93591a;
 }
 .chip--campo {
   background: var(--campo-soft);

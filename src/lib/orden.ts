@@ -233,13 +233,19 @@ function productosPara(
 const redondear = (n: number): number => Math.round(n * 100) / 100
 
 /**
- * Suma una lista de valores que pueden faltar. Devuelve `null` si ALGUNO falta: un total
- * incompleto presentado como si estuviera completo es peor que no mostrar total.
+ * Suma los valores que SÍ están, ignorando los que faltan. Devuelve `null` sólo cuando no hay
+ * ninguno que sumar.
+ *
+ * Todos estos totales son estimaciones: si un producto no tiene precio cargado en Monday, anular
+ * el total entero escondía el importe de los que sí lo tienen, y el usuario terminaba viendo un
+ * guion donde había plata calculable. La fila del producto sin precio ya muestra su propio guion,
+ * así que se ve de dónde sale la diferencia.
  */
-function sumarExacto(valores: (number | null)[]): number | null {
+function sumarDisponible(valores: (number | null)[]): number | null {
+  const presentes = valores.filter((v): v is number => v != null)
   if (valores.length === 0) return 0
-  if (valores.some((v) => v == null)) return null
-  return redondear(valores.reduce<number>((acc, v) => acc + (v ?? 0), 0))
+  if (presentes.length === 0) return null
+  return redondear(presentes.reduce((acc, v) => acc + v, 0))
 }
 
 /**
@@ -263,7 +269,7 @@ export function expandirOrdenes(borrador: BorradorOrden, catalogos: Catalogos): 
       const productos = productosPara(borrador, catalogos.productos, hectareas)
       const totalLaborUsd =
         hectareas != null && usdHa != null ? redondear(hectareas * usdHa) : null
-      const totalProductosUsd = sumarExacto(productos.map((p) => p.totalUsd))
+      const totalProductosUsd = sumarDisponible(productos.map((p) => p.totalUsd))
 
       ordenes.push({
         campoId: campo.id,
@@ -274,10 +280,8 @@ export function expandirOrdenes(borrador: BorradorOrden, catalogos: Catalogos): 
         totalLaborUsd,
         productos,
         totalProductosUsd,
-        totalUsd:
-          totalLaborUsd != null && totalProductosUsd != null
-            ? redondear(totalLaborUsd + totalProductosUsd)
-            : null,
+        // Mismo criterio: labor + productos con lo que haya, no null si falta una parte.
+        totalUsd: sumarDisponible([totalLaborUsd, totalProductosUsd]),
       })
     }
   }
@@ -288,10 +292,10 @@ export function expandirOrdenes(borrador: BorradorOrden, catalogos: Catalogos): 
 export function totalesDe(ordenes: OrdenAGenerar[]): TotalesCarga {
   return {
     ordenes: ordenes.length,
-    hectareas: sumarExacto(ordenes.map((o) => o.hectareas)),
-    labor: sumarExacto(ordenes.map((o) => o.totalLaborUsd)),
-    productos: sumarExacto(ordenes.map((o) => o.totalProductosUsd)),
-    general: sumarExacto(ordenes.map((o) => o.totalUsd)),
+    hectareas: sumarDisponible(ordenes.map((o) => o.hectareas)),
+    labor: sumarDisponible(ordenes.map((o) => o.totalLaborUsd)),
+    productos: sumarDisponible(ordenes.map((o) => o.totalProductosUsd)),
+    general: sumarDisponible(ordenes.map((o) => o.totalUsd)),
   }
 }
 

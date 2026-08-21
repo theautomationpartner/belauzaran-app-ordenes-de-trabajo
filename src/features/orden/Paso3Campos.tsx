@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { BloqueCampo, BorradorOrden, Catalogos } from '@/types'
-import { BuscadorAgregar, type ResultadoBusqueda } from '@/components/ui/BuscadorAgregar'
+import { SelectorMultiple, type OpcionMultiple } from '@/components/ui/SelectorMultiple'
 import { PasoHeader } from '@/components/ui/PasoHeader'
 import { ResumenOrden } from './ResumenOrden'
 import { buscar, expandirOrdenes, hectareasDeLote, lotesTomados, nuevoUid } from '@/lib/orden'
@@ -16,30 +16,26 @@ interface Props {
 /**
  * Paso 3 — Campos y lotes.
  *
- * El buscador de campos vive arriba, igual que el de productos: se agrega un campo y su bloque de
- * lotes aparece debajo. Son sólo 16 campos, así que el buscador los muestra TODOS de entrada y
- * filtra a medida que se escribe —con un catálogo tan chico, ver la lista completa es más rápido
- * que buscar a ciegas—.
+ * Los campos se eligen desde un desplegable con búsqueda y selección múltiple, igual que el de
+ * proveedores: son sólo 16, así que se ofrecen todos y se marcan varios de una pasada. Cada campo
+ * marcado abre debajo su propio bloque con los lotes.
  *
  * Al emitir, cada lote se convierte en una orden propia: el tablero ✋ Orden de Trabajo admite un
  * solo campo y un solo lote por item.
  */
 export function Paso3Campos({ catalogos, borrador, onCambio, onEditarDatos }: Props) {
-  const universo: ResultadoBusqueda[] = useMemo(
+  const opciones: OpcionMultiple[] = useMemo(
     () =>
       catalogos.campos.map((c) => ({
         id: c.id,
-        titulo: c.nombre,
+        nombre: c.nombre,
         detalle: c.lotes.length === 1 ? '1 lote' : `${c.lotes.length} lotes`,
       })),
     [catalogos.campos],
   )
 
   const bloques = borrador.bloques.filter((b) => b.campoId)
-  const agregados = useMemo(
-    () => new Set(bloques.map((b) => b.campoId as string)),
-    [bloques],
-  )
+  const elegidos = useMemo(() => bloques.map((b) => b.campoId as string), [bloques])
 
   const ordenes = useMemo(
     () => expandirOrdenes(borrador, catalogos),
@@ -52,8 +48,17 @@ export function Paso3Campos({ catalogos, borrador, onCambio, onEditarDatos }: Pr
     })
   }
 
-  const agregarCampo = (campoId: string) => {
-    onCambio({ bloques: [...bloques, { uid: nuevoUid(), campoId, loteIds: [] }] })
+  /**
+   * Sincroniza los bloques con lo marcado en el desplegable. Los que ya estaban conservan sus
+   * lotes: desmarcar y volver a marcar por error no debería borrar la selección de otro campo.
+   */
+  const cambiarCampos = (ids: string[]) => {
+    const porCampo = new Map(bloques.map((b) => [b.campoId as string, b]))
+    onCambio({
+      bloques: ids.map(
+        (campoId) => porCampo.get(campoId) ?? { uid: nuevoUid(), campoId, loteIds: [] },
+      ),
+    })
   }
 
   const quitarBloque = (uid: string) => {
@@ -80,21 +85,25 @@ export function Paso3Campos({ catalogos, borrador, onCambio, onEditarDatos }: Pr
       <div className="card card--input">
         <div className="ctitle">
           <i className="fas fa-map-location-dot" style={{ color: '#0073ea' }} aria-hidden />
-          Buscar campos
+          Campos a trabajar
         </div>
         <div className="csub">
-          Tocá un campo para agregarlo. Sus lotes aparecen abajo para que elijas cuáles entran.
+          Marcá los campos en el desplegable. Cada uno abre abajo su lista de lotes.
         </div>
 
-        <BuscadorAgregar
-          items={universo}
-          agregados={agregados}
-          onAgregar={agregarCampo}
-          placeholder="Filtrá por nombre del campo…"
-          /* Con 16 campos, esconder la lista detrás de un botón "Buscar" sería peor: se muestran
-             todos y el texto sólo achica la lista. */
-          mostrarTodo
-        />
+        <div className="ig" style={{ maxWidth: 460 }}>
+          <label className="ig-lbl ig-req" htmlFor="sel-campos">
+            Campos
+          </label>
+          <SelectorMultiple
+            id="sel-campos"
+            opciones={opciones}
+            valores={elegidos}
+            onCambio={cambiarCampos}
+            placeholder="Elegí uno o más campos…"
+            vacio="No hay campos cargados en el tablero."
+          />
+        </div>
       </div>
 
       {bloques.length > 0 && (
