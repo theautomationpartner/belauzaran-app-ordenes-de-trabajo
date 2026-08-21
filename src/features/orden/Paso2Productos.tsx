@@ -24,7 +24,7 @@ interface Props {
  * aplican ningún insumo.
  */
 export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }: Props) {
-  const [tipo, setTipo] = useState<string | null>(null)
+  const [tipos, setTipos] = useState<string[]>([])
 
   /** Universo de búsqueda. Se arma una vez; el buscador decide qué pintar. */
   const universo: ResultadoBusqueda[] = useMemo(
@@ -33,20 +33,21 @@ export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }:
         id: p.id,
         // La etiqueta oficial del tablero es la que ellos reconocen y la que va al subitem.
         titulo: p.etiqueta,
-        detalle:
+        detalle: [
+          p.tipo,
           p.precioUnitario != null
             ? `${usd(p.precioUnitario)} por ${p.unidad || 'unidad'}`
             : 'Sin precio cargado',
+        ]
+          .filter(Boolean)
+          .join(' · '),
         chips: [p.tipo].filter(Boolean),
       })),
     [catalogos.productos],
   )
 
   const cargadas = lineasCargadas(borrador)
-  const agregados = useMemo(
-    () => new Set(cargadas.map((l) => l.productoId as string)),
-    [cargadas],
-  )
+  const agregados = useMemo(() => new Set(cargadas.map((l) => l.productoId as string)), [cargadas])
 
   const actualizarLinea = (uid: string, parcial: Partial<LineaProducto>) => {
     onCambio({
@@ -91,6 +92,7 @@ export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }:
         <div className="ctitle">
           <i className="fas fa-magnifying-glass" style={{ color: '#0073ea' }} aria-hidden />
           Buscar productos
+          <span className="chip chip--opcional">Opcional</span>
         </div>
         <div className="csub">
           Escribí parte del nombre y tocá Buscar, o filtrá por tipo. Podés agregar varios seguidos
@@ -107,109 +109,111 @@ export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }:
             {
               titulo: 'Tipo de producto',
               opciones: catalogos.filtros.tiposProducto,
-              valor: tipo,
-              onCambio: setTipo,
+              valores: tipos,
+              onCambio: setTipos,
             },
           ]}
         />
       </div>
 
+      {/* Los productos cargados van en UNA tabla, una fila por insumo: puestos en tarjetas
+          separadas había que recorrer la pantalla entera para comparar dos dosis. */}
       {cargadas.length > 0 && (
-        <div className="bloques">
-          {borrador.productos.map((linea, i) => {
-            const producto = buscar(catalogos.productos, linea.productoId)
-            if (!producto) return null
+        <div className="card card--input card--flush">
+          <div className="ctitle">
+            <i className="fas fa-flask" style={{ color: '#6200ee' }} aria-hidden />
+            Productos de la orden
+            <span className="chip chip--gris">{cargadas.length}</span>
+          </div>
+          <div className="csub">
+            Cada uno va a ser un subelemento de la orden, con la cantidad recalculada según las
+            hectáreas de cada lote.
+          </div>
 
-            const cant = aNumero(linea.cantPorHa)
-            const completa = cant != null && cant > 0
-            const unidad = producto.unidad || 'unidad'
+          <div className="tabla-wrap">
+            <div className="tabla-scroll">
+              <table className="tabla tabla-productos">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th className="num">Cantidad por hectárea</th>
+                    <th className="num">Precio unitario</th>
+                    <th className="num">Costo por hectárea</th>
+                    <th aria-label="Acciones" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {borrador.productos.map((linea) => {
+                    const producto = buscar(catalogos.productos, linea.productoId)
+                    if (!producto) return null
 
-            return (
-              <div className={`bloque ${completa ? 'bloque--completo' : ''}`} key={linea.uid}>
-                <div className="bloque-head">
-                  <span className="bloque-nro">
-                    {completa ? <i className="fas fa-check" /> : i + 1}
-                  </span>
-                  <span className="bloque-tit">{producto.etiqueta}</span>
-                  {producto.tipo && <span className="chip chip--gris">{producto.tipo}</span>}
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-ghost--rojo"
-                    onClick={() => quitar(linea.uid)}
-                    aria-label={`Quitar ${producto.etiqueta}`}
-                  >
-                    <i className="fas fa-trash-can" aria-hidden /> Quitar
-                  </button>
-                </div>
+                    const cant = aNumero(linea.cantPorHa)
+                    const completa = cant != null && cant > 0
+                    const unidad = producto.unidad || 'unidad'
 
-                <div className="bloque-body">
-                  <div className="grid-producto">
-                    <div className="ig">
-                      <label className="ig-lbl ig-req">Cantidad por hectárea</label>
-                      <div className="fc-sufijo">
-                        <input
-                          className="fc"
-                          inputMode="decimal"
-                          autoComplete="off"
-                          placeholder="0,00"
-                          value={linea.cantPorHa}
-                          onChange={(e) =>
-                            actualizarLinea(linea.uid, { cantPorHa: e.target.value })
-                          }
-                        />
-                        <span>{unidad}</span>
-                      </div>
-                      {producto.cantPorHaSugerida != null && (
-                        <span className="ig-hint">
-                          Referencia del tablero: {producto.cantPorHaSugerida} {unidad} por ha.
-                        </span>
-                      )}
-                    </div>
+                    return (
+                      <tr key={linea.uid} className={completa ? '' : 'fila--incompleta'}>
+                        <td data-lbl="Producto">
+                          <span className="prod-nom">{producto.etiqueta}</span>
+                        </td>
 
-                    <div className="ig">
-                      <span className="ig-lbl">Precio unitario</span>
-                      <div className="dato-fijo">
-                        {producto.precioUnitario != null ? (
-                          <>
-                            <strong>{usd(producto.precioUnitario)}</strong>
-                            <span className="xs">&nbsp;por {unidad}</span>
-                          </>
-                        ) : (
-                          <span className="muted">Sin precio cargado en Monday</span>
-                        )}
-                      </div>
-                    </div>
+                        <td data-lbl="Cantidad por hectárea" className="num">
+                          <div className="fc-sufijo fc-sufijo--tabla">
+                            <input
+                              className="fc fc--tabla"
+                              inputMode="decimal"
+                              autoComplete="off"
+                              placeholder="0,00"
+                              aria-label={`Cantidad por hectárea de ${producto.etiqueta}`}
+                              value={linea.cantPorHa}
+                              onChange={(e) =>
+                                actualizarLinea(linea.uid, { cantPorHa: e.target.value })
+                              }
+                            />
+                            <span>{unidad}</span>
+                          </div>
+                        </td>
 
-                    <div className="ig">
-                      <span className="ig-lbl">Costo por hectárea</span>
-                      <div className="dato-fijo">
-                        {completa && producto.precioUnitario != null ? (
-                          <strong className="t-green">
-                            {usd(producto.precioUnitario * (cant ?? 0))}
-                          </strong>
-                        ) : (
-                          <span className="muted">—</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+                        <td data-lbl="Precio unitario" className="num">
+                          {producto.precioUnitario != null ? (
+                            usd(producto.precioUnitario)
+                          ) : (
+                            <span className="muted">Sin precio</span>
+                          )}
+                        </td>
+
+                        <td data-lbl="Costo por hectárea" className="num font-b">
+                          {completa && producto.precioUnitario != null ? (
+                            <span className="t-green">
+                              {usd(producto.precioUnitario * (cant ?? 0))}
+                            </span>
+                          ) : (
+                            <span className="muted">—</span>
+                          )}
+                        </td>
+
+                        <td data-lbl="" className="celda-accion">
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-ghost--rojo btn--sm"
+                            onClick={() => quitar(linea.uid)}
+                            aria-label={`Quitar ${producto.etiqueta}`}
+                          >
+                            <i className="fas fa-trash-can" aria-hidden /> Quitar
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="acciones-bloque">
-        <span className="xs">
-          {cargadas.length === 0
-            ? 'Sin productos: la orden se va a cargar sólo con la labor.'
-            : `${cargadas.length} producto${cargadas.length === 1 ? '' : 's'} en la orden.`}
-        </span>
-      </div>
-
       {cargadas.length === 0 && (
-        <div className="aviso aviso--info" style={{ marginTop: 4 }}>
+        <div className="aviso aviso--info">
           <i className="fas fa-circle-info" aria-hidden />
           <span>
             Si la labor no aplica insumos (disco, corte, rastra…), podés continuar sin cargar

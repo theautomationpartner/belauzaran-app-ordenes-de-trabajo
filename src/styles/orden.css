@@ -6,8 +6,8 @@
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid var(--campo-bd);
-  background: var(--campo-soft);
+  border: 1px solid var(--sel-bd);
+  background: #fff;
   border-radius: 8px;
 }
 .contacto-ava {
@@ -64,7 +64,7 @@
 }
 /* El bloque ya resuelto se tiñe de verde campo: de un vistazo se ve cuál falta completar. */
 .bloque--completo {
-  border-color: var(--campo-bd);
+  border-color: var(--sel-bd);
 }
 .bloque-head {
   display: flex;
@@ -75,8 +75,8 @@
   border-bottom: 1px solid var(--tint-neutral-bd);
 }
 .bloque--completo .bloque-head {
-  background: var(--campo-soft);
-  border-bottom-color: var(--campo-bd);
+  background: #fff;
+  border-bottom-color: var(--tint-neutral-bd);
 }
 .bloque-nro {
   width: 26px;
@@ -140,12 +140,13 @@
   transition: 0.12s;
 }
 .lote:hover:not(:disabled) {
-  border-color: var(--campo-bd);
-  background: #fbfefc;
+  border-color: var(--sel-bd);
+  background: var(--hover-gris);
 }
 .lote--sel {
-  border-color: var(--campo);
-  background: var(--campo-soft);
+  border-color: var(--sel-bd);
+  background: #fff;
+  font-weight: 600;
 }
 .lote:disabled {
   opacity: 0.55;
@@ -438,7 +439,7 @@
   gap: 10px;
   flex-wrap: wrap;
   padding: 10px 14px;
-  background: #f6fbf8;
+  background: #fff;
   border-bottom: 1px solid var(--tint-summary-bd);
 }
 .orden-nro {
@@ -657,12 +658,12 @@
   transition: 0.12s;
 }
 .resultado:hover:not(:disabled) {
-  border-color: var(--primary-blue);
-  background: #f0f7ff;
+  border-color: var(--sel-bd);
+  background: var(--hover-gris);
 }
 .resultado--puesto {
-  background: var(--campo-soft);
-  border-color: var(--campo-bd);
+  background: #fff;
+  border-color: var(--sel-bd);
   cursor: default;
 }
 .resultado-ic {
@@ -715,9 +716,9 @@
   align-items: center;
   gap: 10px;
   padding: 7px 8px 7px 12px;
-  border: 1px solid var(--campo-bd);
+  border: 1px solid var(--sel-bd);
   border-radius: 8px;
-  background: var(--campo-soft);
+  background: #fff;
 }
 .elegido-tit {
   flex: 1;
@@ -778,11 +779,12 @@
   transition: 0.12s;
 }
 .opcion-envio:hover {
-  border-color: var(--primary-blue);
+  border-color: var(--sel-bd);
+  background: var(--hover-gris);
 }
 .opcion-envio--sel {
-  border-color: var(--campo);
-  background: var(--campo-soft);
+  border-color: var(--sel-bd);
+  background: #fff;
 }
 /* La opción que efectivamente manda se pinta distinto: el color hace de última advertencia
    antes de una acción que no se puede deshacer. */
@@ -844,4 +846,198 @@
   color: #98a2b3;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* ===== Filtros en desplegable (maquinaria) ===== */
+.filtro-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+.filtro-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-dark);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.filtro-trigger:hover {
+  background: var(--hover-gris);
+}
+.filtro-trigger--activo {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+.filtro-cuenta {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--purple);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.filtro-lista {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 60;
+  min-width: 230px;
+  max-height: 300px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.16);
+  padding: 4px;
+}
+.filtro-op {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 9px;
+  border: none;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13.5px;
+  color: var(--text-dark);
+}
+.filtro-op:hover {
+  background: var(--hover-gris);
+}
+.filtro-op--sel {
+  font-weight: 700;
+}
+.filtro-check {
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #fff;
+  flex: none;
+}
+.filtro-op--sel .filtro-check {
+  background: var(--purple);
+  border-color: var(--purple);
+}
+
+/* Filtros activos, fuera del menú: se ven sin abrir nada y se quitan de a uno. */
+.filtros-elegidos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 4px 0 11px;
+  border-radius: 13px;
+  background: var(--purple-light);
+  color: var(--purple);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chip-filtro button {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+.chip-filtro button:hover {
+  background: rgba(98, 0, 238, 0.14);
+}
+
+/* ===== Tabla de productos cargados ===== */
+.tabla-productos {
+  min-width: 720px;
+}
+.tabla-productos td {
+  vertical-align: middle;
+}
+.prod-nom {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+/* Fila a la que todavía le falta la dosis: el filete la señala sin gritar. */
+.fila--incompleta td:first-child {
+  box-shadow: inset 3px 0 0 var(--orange);
+}
+.celda-accion {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+/* Input dentro de una celda: más bajo que el de un formulario suelto, para no inflar la fila. */
+.fc--tabla {
+  height: 38px;
+  font-size: 14px;
+  text-align: right;
+  max-width: 190px;
+  margin-left: auto;
+}
+.fc-sufijo--tabla .fc--tabla {
+  padding-right: 70px;
+}
+.fc-sufijo--tabla > span {
+  right: 10px;
+  font-size: 11.5px;
+}
+
+@media (max-width: 640px) {
+  .tabla-productos {
+    min-width: 0;
+  }
+  .fc--tabla {
+    max-width: none;
+    margin-left: 0;
+  }
+  .celda-accion {
+    width: auto;
+    text-align: left;
+  }
+  .fila--incompleta td:first-child {
+    box-shadow: none;
+  }
+}
+
+.metrica-ic--naranja {
+  background: #fff4e5;
+  color: #b25e09;
+}
+/* El total general cierra la barra: se distingue del resto de las métricas. */
+.metrica--fuerte {
+  border-color: var(--tint-summary-bd);
+  background: var(--tint-summary);
+}
+.metrica--fuerte .metrica-val {
+  color: var(--green-dark);
 }

@@ -151,6 +151,10 @@ export function App() {
   const cabecera = (
     <header className="topbar">
       <div className="topbar-in">
+        {/* La marca abre la barra, a la izquierda del selector de operación. */}
+        <div className="topbar-marca">
+          <LogoEmpresa />
+        </div>
         <div className="topbar-ctx">
           <div className="topsel-item">
             <span className="topsel-lbl">Seleccionar tipo de operación:</span>
@@ -164,9 +168,6 @@ export function App() {
               />
             </div>
           </div>
-        </div>
-        <div className="topbar-marca">
-          <LogoEmpresa />
         </div>
         {catalogos && (
           <div className="topbar-steps">

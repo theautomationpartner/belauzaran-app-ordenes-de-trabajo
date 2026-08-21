@@ -102,6 +102,9 @@ export function Paso4Emision({
   const totales = totalesDe(ordenes)
   const sinHectareas = ordenes.filter((o) => o.hectareas == null).length
   const subitems = ordenes.reduce((acc, o) => acc + o.productos.length, 0)
+  /* Los productos son los mismos en todas las ordenes, asi que "por OT" es la cantidad de una
+     cualquiera; el total de subelementos es ese numero por la cantidad de ordenes. */
+  const porOrden = ordenes[0]?.productos.length ?? 0
 
   return (
     <div className="view">
@@ -137,11 +140,29 @@ export function Paso4Emision({
             <i className="fas fa-flask" aria-hidden />
           </div>
           <div className="metrica-body">
-            <div className="metrica-lbl">Productos (subelementos)</div>
-            <div className="metrica-val">{subitems}</div>
+            <div className="metrica-lbl">Productos x OT</div>
+            <div className="metrica-val">{porOrden}</div>
           </div>
         </div>
         <div className="metrica">
+          <div className="metrica-ic metrica-ic--naranja">
+            <i className="fas fa-tractor" aria-hidden />
+          </div>
+          <div className="metrica-body">
+            <div className="metrica-lbl">Total x Labor</div>
+            <div className="metrica-val">{usd(totales.labor)}</div>
+          </div>
+        </div>
+        <div className="metrica">
+          <div className="metrica-ic metrica-ic--violeta">
+            <i className="fas fa-flask-vial" aria-hidden />
+          </div>
+          <div className="metrica-body">
+            <div className="metrica-lbl">Total x Producto</div>
+            <div className="metrica-val">{subitems === 0 ? '—' : usd(totales.productos)}</div>
+          </div>
+        </div>
+        <div className="metrica metrica--fuerte">
           <div className="metrica-ic metrica-ic--verde">
             <i className="fas fa-dollar-sign" aria-hidden />
           </div>

@@ -25,7 +25,7 @@ let contador = 0
 /** Clave local de un bloque o de una línea. No usa `crypto.randomUUID` para no depender de HTTPS. */
 export const nuevoUid = (): string => `b${++contador}`
 
-/** Borrador vacío: un bloque de campo y una línea de producto listos para completar. */
+/** Borrador vacío. Productos y campos arrancan sin filas: se agregan desde sus buscadores. */
 export const borradorInicial = (): BorradorOrden => ({
   realizadoPor: null,
   laborId: null,
@@ -36,7 +36,7 @@ export const borradorInicial = (): BorradorOrden => ({
   contactoId: null,
   productos: [],
   maquinariaIds: [],
-  bloques: [{ uid: nuevoUid(), campoId: null, loteIds: [] }],
+  bloques: [],
   estadoEnvio: OT_ESTADO_ENVIO_INICIAL,
 })
 
@@ -189,9 +189,6 @@ export function faltantesCampos(borrador: BorradorOrden): string[] {
         ? 'Hay un campo sin lotes seleccionados.'
         : `Hay ${sinLotes} campos sin lotes seleccionados.`,
     )
-  }
-  if (borrador.bloques.some((b) => !b.campoId)) {
-    faltan.push('Hay un bloque sin campo elegido: completalo o quitalo.')
   }
   return faltan
 }

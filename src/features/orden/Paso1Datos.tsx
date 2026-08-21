@@ -31,8 +31,8 @@ function iniciales(nombre: string): string {
  * los de abajo (lo hace `App`), porque un valor heredado dejaría de corresponder.
  */
 export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
-  const [tipoMaq, setTipoMaq] = useState<string | null>(null)
-  const [clasifMaq, setClasifMaq] = useState<string | null>(null)
+  const [tiposMaq, setTiposMaq] = useState<string[]>([])
+  const [clasifMaq, setClasifMaq] = useState<string[]>([])
 
   const proveedores = useMemo(
     () => proveedoresElegibles(catalogos.proveedores, borrador.realizadoPor),
@@ -276,20 +276,9 @@ export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
               <div className="contacto-ficha">
                 <div className="contacto-ava">{iniciales(contacto.nombre)}</div>
                 <div className="contacto-datos">
+                  {/* Sólo el nombre: el teléfono y el mail ya están a la vista en el selector
+                      de arriba, y repetirlos acá no agrega nada. */}
                   <span className="contacto-nom">{contacto.nombre}</span>
-                  <span className="contacto-medios">
-                    {contacto.telefono && (
-                      <span>
-                        <i className="fab fa-whatsapp" aria-hidden /> {contacto.telefono}
-                      </span>
-                    )}
-                    {contacto.email && (
-                      <span>
-                        <i className="fas fa-envelope" aria-hidden /> {contacto.email}
-                      </span>
-                    )}
-                    {!contacto.telefono && !contacto.email && <span>Sin teléfono ni email</span>}
-                  </span>
                 </div>
               </div>
             </div>
@@ -312,7 +301,7 @@ export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
             <i className="fas fa-tractor" style={{ color: '#b25e09' }} aria-hidden />
             Maquinaria
-            <span className="chip chip--gris">Opcional</span>
+            <span className="chip chip--opcional">Opcional</span>
           </span>
           {maquinarias.length > 0 && (
             <span className="chip chip--campo">
@@ -357,14 +346,16 @@ export function Paso1Datos({ catalogos, borrador, onCambio }: Props) {
             {
               titulo: 'Tipo',
               opciones: catalogos.filtros.tiposMaquinaria,
-              valor: tipoMaq,
-              onCambio: setTipoMaq,
+              valores: tiposMaq,
+              onCambio: setTiposMaq,
+              modo: 'desplegable',
             },
             {
               titulo: 'Clasificación',
               opciones: catalogos.filtros.clasificacionesMaquinaria,
-              valor: clasifMaq,
+              valores: clasifMaq,
               onCambio: setClasifMaq,
+              modo: 'desplegable',
             },
           ]}
         />
