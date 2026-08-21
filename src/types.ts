@@ -157,6 +157,11 @@ export interface BorradorOrden {
   /** Maquinarias afectadas a la labor. Opcional: puede ir ninguna, una o varias. */
   maquinariaIds: string[]
   bloques: BloqueCampo[]
+  /**
+   * Etiqueta de `color_mm0xaytt` con la que se crean las órdenes: dejarlas cargadas o enviarlas
+   * en el acto. Se decide en el último paso, justo antes de emitir.
+   */
+  estadoEnvio: string
 }
 
 /**
@@ -217,6 +222,8 @@ export interface CargaAEmitir {
   contacto: (ItemBasico & { telefono: string; email: string }) | null
   maquinarias: ItemBasico[]
   usdPorHa: number
+  /** Etiqueta de `color_mm0xaytt` para las órdenes de esta carga. */
+  estadoEnvio: string
   ordenes: OrdenAGenerar[]
 }
 

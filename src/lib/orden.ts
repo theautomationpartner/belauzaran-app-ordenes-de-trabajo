@@ -19,7 +19,7 @@ import type {
   TotalesCarga,
 } from '@/types'
 import { aNumero } from './format'
-import { REALIZADO_POR } from '@/services/monday/columns'
+import { OT_ESTADO_ENVIO_INICIAL, REALIZADO_POR } from '@/services/monday/columns'
 
 let contador = 0
 /** Clave local de un bloque o de una línea. No usa `crypto.randomUUID` para no depender de HTTPS. */
@@ -37,6 +37,7 @@ export const borradorInicial = (): BorradorOrden => ({
   productos: [],
   maquinariaIds: [],
   bloques: [{ uid: nuevoUid(), campoId: null, loteIds: [] }],
+  estadoEnvio: OT_ESTADO_ENVIO_INICIAL,
 })
 
 /** Etiquetas disponibles para "Realizado por". */
@@ -338,6 +339,7 @@ export function armarCarga(borrador: BorradorOrden, catalogos: Catalogos): Carga
       soloIdNombre,
     ),
     usdPorHa,
+    estadoEnvio: borrador.estadoEnvio,
     ordenes,
   }
 }

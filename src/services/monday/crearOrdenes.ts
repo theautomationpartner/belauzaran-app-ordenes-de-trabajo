@@ -4,8 +4,8 @@
  * La app escribe directo contra la API: un item por cada par campo+lote, y debajo de cada uno un
  * subitem por producto con la cantidad ya calculada para las hectáreas de ese lote.
  *
- * Todas nacen con el estado de envío en "NO Enviar por Ahora". Es a propósito: la orden queda
- * cargada y revisable en el tablero sin disparar el circuito de envío al contratista.
+ * El estado de envío con el que nacen lo decide el usuario antes de emitir: por defecto quedan
+ * cargadas sin enviar, y sólo si lo cambia a mano salen al circuito de envío al contratista.
  */
 import type { AvanceEmision, CargaAEmitir, OrdenAGenerar, ResultadoOrden } from '@/types'
 import { aTextoMonday } from '@/lib/format'
@@ -55,7 +55,8 @@ function columnasDeOrden(carga: CargaAEmitir, orden: OrdenAGenerar): Record<stri
     [COL_OT.campo]: conexion(orden.campoId),
     [COL_OT.lote]: conexion(orden.loteId),
     [COL_OT.usdPorHa]: aTextoMonday(carga.usdPorHa),
-    [COL_OT.estadoEnvio]: estado(OT_ESTADO_ENVIO_INICIAL),
+    // Lo elige el usuario en el último paso: dejarla cargada o largarla al envío en el acto.
+    [COL_OT.estadoEnvio]: estado(carga.estadoEnvio || OT_ESTADO_ENVIO_INICIAL),
   }
 
   // La maquinaria es opcional: mandar la columna vacía borraría lo que hubiera puesto una

@@ -308,6 +308,7 @@ export function App() {
           <Paso4Emision
             catalogos={datos}
             borrador={borrador}
+            onCambio={actualizar}
             onEditarDatos={() => irA(0)}
             onEditarProductos={() => irA(1)}
             onEditarCampos={() => irA(2)}
@@ -338,12 +339,17 @@ export function App() {
 
       <footer className="footbar">
         <div className="footbar-in">
+          {/* Qué build está corriendo. Sin esto, saber si un deploy tomó el último commit
+              obliga a adivinar mirando la pantalla. */}
+          <span className="version" title="Versión desplegada">
+            {__COMMIT__}
+          </span>
           <span className={`footbar-msg ${bloqueado ? 'footbar-msg--bloqueo' : ''}`}>
             <i className={`fas fa-${bloqueado ? 'circle-exclamation' : 'arrow-turn-down'}`} aria-hidden />
             {bloqueado
               ? faltantes[0]
               : enUltimoPaso
-                ? `Se ${ordenes.length === 1 ? 'va' : 'van'} a crear ${ordenes.length} orden${ordenes.length === 1 ? '' : 'es'} en el tablero, en estado NO Enviar por Ahora.`
+                ? `Se ${ordenes.length === 1 ? 'va' : 'van'} a crear ${ordenes.length} orden${ordenes.length === 1 ? '' : 'es'} en estado «${borrador.estadoEnvio}».`
                 : `Siguiente: ${PASOS[paso + 1]}`}
           </span>
 

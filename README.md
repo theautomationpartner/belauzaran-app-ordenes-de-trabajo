@@ -89,8 +89,15 @@ lee el motivo.
 ## Qué escribe la app en Monday
 
 Al emitir se crea **un elemento por cada par campo + lote** en ✋ Orden de Trabajo, y debajo de
-cada uno **un subelemento por producto**. Todas nacen con `🤖 Estado de Envio` en
-**NO Enviar por Ahora**: quedan cargadas y revisables sin disparar el envío al contratista.
+cada uno **un subelemento por producto**.
+
+Antes de emitir se elige el `🤖 Estado de Envio` con el que nacen:
+
+- **NO Enviar por Ahora** (por defecto) — quedan cargadas y revisables, sin avisarle al contratista.
+- **Crear y Enviar Ahora** — se dispara el envío apenas se crean.
+
+El valor por defecto es el conservador a propósito: un envío no se puede deshacer, así que mandar
+tiene que ser una decisión explícita y no lo que pasa si nadie tocó nada.
 
 El nombre sigue la convención del tablero: `LABOR-PROVEEDOR-LOTE-CULTIVO-CAMPAÑA`.
 
@@ -107,7 +114,7 @@ El nombre sigue la convención del tablero: `LABOR-PROVEEDOR-LOTE-CULTIVO-CAMPA�
 | Lote | `board_relation_mm31x8fe` |
 | Pago por hectárea | `numeric_mm09rwxd` |
 | Maquinaria | `board_relation_mm3jkkcw` |
-| Estado de envío | `color_mm0xaytt` → `NO Enviar por Ahora` |
+| Estado de envío | `color_mm0xaytt` → lo elige el usuario antes de emitir |
 
 ### Subelemento (uno por producto)
 

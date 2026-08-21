@@ -758,3 +758,90 @@
   min-width: 0;
   color: var(--text-dark);
 }
+
+/* ===== Elección del estado de envío (paso 4) ===== */
+.opciones-envio {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+.opcion-envio {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: 0.12s;
+}
+.opcion-envio:hover {
+  border-color: var(--primary-blue);
+}
+.opcion-envio--sel {
+  border-color: var(--campo);
+  background: var(--campo-soft);
+}
+/* La opción que efectivamente manda se pinta distinto: el color hace de última advertencia
+   antes de una acción que no se puede deshacer. */
+.opcion-envio--alerta {
+  border-color: #f79009;
+  background: #fffaeb;
+}
+.opcion-envio-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  flex: none;
+  margin-top: 2px;
+  color: var(--campo);
+}
+.opcion-envio--sel .opcion-envio-radio {
+  border-color: var(--campo);
+}
+.opcion-envio--alerta .opcion-envio-radio {
+  border-color: #b25e09;
+  color: #b25e09;
+}
+.opcion-envio-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.opcion-envio-tit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 700;
+}
+.opcion-envio-det {
+  font-size: 12.5px;
+  color: var(--text-gray);
+  line-height: 1.4;
+}
+.opcion-envio-col {
+  font-size: 11.5px;
+  color: var(--text-gray);
+  margin-top: 2px;
+}
+
+/* ===== Marca de versión ===== */
+/* Dice qué build está corriendo. Sirve para saber de un vistazo si el deploy tomó el último
+   commit, que sin esto sólo se puede adivinar mirando la pantalla. */
+.version {
+  font-size: 10.5px;
+  color: #98a2b3;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

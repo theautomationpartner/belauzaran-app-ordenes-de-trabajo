@@ -4,10 +4,12 @@ import { PasoHeader } from '@/components/ui/PasoHeader'
 import { ResumenOrden } from './ResumenOrden'
 import { expandirOrdenes, totalesDe } from '@/lib/orden'
 import { cantidad, hectareas, usd } from '@/lib/format'
+import { OT_ESTADOS_ENVIO, OT_ESTADO_ENVIO_INICIAL } from '@/services/monday/columns'
 
 interface Props {
   catalogos: Catalogos
   borrador: BorradorOrden
+  onCambio: (parcial: Partial<BorradorOrden>) => void
   onEditarDatos: () => void
   onEditarProductos: () => void
   onEditarCampos: () => void
@@ -91,6 +93,7 @@ function TarjetaOrden({ orden, indice }: { orden: OrdenAGenerar; indice: number 
 export function Paso4Emision({
   catalogos,
   borrador,
+  onCambio,
   onEditarDatos,
   onEditarProductos,
   onEditarCampos,
@@ -202,14 +205,60 @@ export function Paso4Emision({
         </div>
       </div>
 
-      <div className="aviso aviso--info">
-        <i className="fas fa-circle-info" aria-hidden />
-        <span>
-          Al emitir se crea un elemento por orden en el tablero ✋ Orden de Trabajo, con sus
-          productos como subelementos. Todas quedan en estado{' '}
-          <strong>NO Enviar por Ahora</strong>, así que no se le manda nada al contratista hasta
-          que alguien lo habilite desde Monday.
-        </span>
+      <div className="card card--config card--flush">
+        <div className="ctitle">
+          <i className="fas fa-paper-plane" style={{ color: '#6200ee' }} aria-hidden />
+          ¿Qué hacemos con {ordenes.length === 1 ? 'la orden' : 'las órdenes'}?
+        </div>
+        <div className="csub">
+          Se crea un elemento por orden en ✋ Orden de Trabajo con sus productos como
+          subelementos. Lo que cambia es si sale o no al contratista.
+        </div>
+
+        <div className="opciones-envio">
+          {OT_ESTADOS_ENVIO.map((op) => {
+            const elegida = borrador.estadoEnvio === op.etiqueta
+            const envia = op.etiqueta !== OT_ESTADO_ENVIO_INICIAL
+            return (
+              <button
+                type="button"
+                key={op.etiqueta}
+                className={`opcion-envio ${elegida ? 'opcion-envio--sel' : ''} ${
+                  elegida && envia ? 'opcion-envio--alerta' : ''
+                }`}
+                aria-pressed={elegida}
+                onClick={() => onCambio({ estadoEnvio: op.etiqueta })}
+              >
+                <span className="opcion-envio-radio">
+                  {elegida && <i className="fas fa-circle" aria-hidden />}
+                </span>
+                <span className="opcion-envio-body">
+                  <span className="opcion-envio-tit">
+                    {op.titulo}
+                    {!envia && <span className="chip chip--gris">Por defecto</span>}
+                  </span>
+                  <span className="opcion-envio-det">{op.detalle}</span>
+                  <span className="opcion-envio-col">
+                    Estado en Monday: <strong>{op.etiqueta}</strong>
+                  </span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* El envío no se puede deshacer, así que elegir la opción que manda tiene que verse
+            distinto de la que sólo deja la orden cargada. */}
+        {borrador.estadoEnvio !== OT_ESTADO_ENVIO_INICIAL && (
+          <div className="aviso aviso--warn" style={{ marginTop: 14 }}>
+            <i className="fas fa-triangle-exclamation" aria-hidden />
+            <span>
+              {ordenes.length === 1 ? 'La orden va a salir' : `Las ${ordenes.length} órdenes van a salir`}{' '}
+              al contratista apenas se {ordenes.length === 1 ? 'cree' : 'creen'}. Revisá los datos
+              antes de continuar: un envío no se puede deshacer.
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )

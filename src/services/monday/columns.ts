@@ -41,10 +41,30 @@ export const COL_OT = {
 } as const
 
 /**
- * Estado con el que nacen todas las órdenes. Es deliberado: deja el item cargado en el tablero
- * sin disparar el envío, para que alguien lo revise y recién entonces lo mande.
+ * Estados de envío con los que la app puede crear una orden (`color_mm0xaytt`).
+ *
+ * Son los dos extremos de la decisión: dejarla cargada para revisarla, o largarla al circuito de
+ * envío en el acto. El resto de las etiquetas de la columna las maneja la automatización del
+ * tablero (Enviando, Enviado, Error…) y no tiene sentido que las escriba la app.
  */
-export const OT_ESTADO_ENVIO_INICIAL = 'NO Enviar por Ahora'
+export const OT_ESTADOS_ENVIO = [
+  {
+    etiqueta: 'NO Enviar por Ahora',
+    titulo: 'Dejar cargada sin enviar',
+    detalle: 'La orden queda en el tablero para revisarla. No se le manda nada al contratista.',
+  },
+  {
+    etiqueta: 'Crear y Enviar Ahora',
+    titulo: 'Crear y enviar en el momento',
+    detalle: 'Se dispara el envío al contacto del proveedor apenas se crea la orden.',
+  },
+] as const
+
+/**
+ * Estado por defecto. Es el conservador a propósito: el envío no se puede deshacer, así que
+ * mandar tiene que ser una decisión explícita y no lo que pasa si nadie tocó nada.
+ */
+export const OT_ESTADO_ENVIO_INICIAL: string = OT_ESTADOS_ENVIO[0].etiqueta
 
 /**
  * Quién ejecuta la labor (`color_mm1ftcaf`) y con qué tipo de proveedor se corresponde
