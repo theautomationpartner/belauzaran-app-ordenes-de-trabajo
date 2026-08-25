@@ -47,17 +47,43 @@ async function motivoDelFallo(res: Response): Promise<string> {
   return recorte ? `HTTP ${res.status} · ${recorte}` : `HTTP ${res.status}`
 }
 
+/** Falla de autorización: el pedido no viene de una sesión válida de monday. */
+export class SinAcceso extends Error {}
+
+/**
+ * Cabecera de autorización.
+ *
+ * En desarrollo va el token personal de `.env.local`, porque el pedido sale directo contra la API
+ * por el proxy de Vite. En producción va el `sessionToken` de monday, que NO sirve para consultar
+ * la API: sirve para que `/api/monday` compruebe que del otro lado hay un usuario real de la
+ * cuenta. Esa función lo cambia por el token de la cuenta antes de hablar con Monday.
+ */
+async function autorizacion(): Promise<string> {
+  if (import.meta.env.DEV) return TOKEN ?? ''
+  const { obtenerSessionToken } = await import('./sesion')
+  return `Bearer ${await obtenerSessionToken()}`
+}
+
 /** Ejecuta una query/mutation y devuelve `data`; lanza con el mensaje de Monday si falla. */
 export async function mondayApi<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+  let cabecera: string
+  try {
+    cabecera = await autorizacion()
+  } catch {
+    // Sin sesión de monday no hay nada que intentar: el servidor la va a rechazar igual.
+    throw new SinAcceso('No hay una sesión de monday activa.')
+  }
+
   const res = await fetch(ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: TOKEN ?? '',
+      Authorization: cabecera,
       'API-Version': API_VERSION,
     },
     body: JSON.stringify({ query, variables: variables ?? {} }),
   })
+  if (res.status === 401) throw new SinAcceso(await motivoDelFallo(res))
   if (!res.ok) throw new Error(await motivoDelFallo(res))
 
   const json = (await res.json()) as Respuesta<T>

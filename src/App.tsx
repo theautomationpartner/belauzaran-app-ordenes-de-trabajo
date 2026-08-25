@@ -8,7 +8,8 @@ import { Paso2Productos } from '@/features/orden/Paso2Productos'
 import { Paso3Campos } from '@/features/orden/Paso3Campos'
 import { Paso4Emision } from '@/features/orden/Paso4Emision'
 import { traerCatalogos } from '@/services/monday/catalogos'
-import { mondayHabilitado } from '@/services/monday/sdk'
+import { SinAcceso, mondayHabilitado } from '@/services/monday/sdk'
+import { obtenerDatosSesion } from '@/services/monday/sesion'
 import { crearOrdenes } from '@/services/monday/crearOrdenes'
 import {
   armarCarga,
@@ -27,6 +28,8 @@ const OPERACIONES = [{ id: 'ORDEN_DE_TRABAJO', nombre: 'Cargar Orden de Trabajo'
 type EstadoCarga =
   | { fase: 'cargando' }
   | { fase: 'listo'; catalogos: Catalogos }
+  /** La app no se está usando desde monday, o la cuenta no es la habilitada. */
+  | { fase: 'sin-acceso' }
   | { fase: 'error'; mensaje: string }
 
 type EstadoEmision =
@@ -50,9 +53,15 @@ export function App() {
     setCarga({ fase: 'cargando' })
     traerCatalogos()
       .then((catalogos) => setCarga({ fase: 'listo', catalogos }))
-      .catch((e: unknown) =>
-        setCarga({ fase: 'error', mensaje: e instanceof Error ? e.message : String(e) }),
-      )
+      .catch((e: unknown) => {
+        /* Sin sesión válida de monday no es un error de datos: es que la app no se está usando
+           desde donde corresponde. Amerita su propia pantalla, no un "reintentar". */
+        if (e instanceof SinAcceso) {
+          setCarga({ fase: 'sin-acceso' })
+          return
+        }
+        setCarga({ fase: 'error', mensaje: e instanceof Error ? e.message : String(e) })
+      })
   }, [])
 
   useEffect(() => {
@@ -64,7 +73,19 @@ export function App() {
       })
       return
     }
-    cargar()
+
+    /* En desarrollo se trabaja fuera de monday, contra el proxy de Vite: no hay sesión que pedir.
+       En el deploy se comprueba ANTES de cargar nada, para que quien abra la URL suelta vea el
+       cartel y no una pantalla a medio armar. La comprobación de verdad la hace igual el
+       servidor en cada request; esta es sólo la versión visible. */
+    if (import.meta.env.DEV) {
+      cargar()
+      return
+    }
+
+    obtenerDatosSesion()
+      .then(() => cargar())
+      .catch(() => setCarga({ fase: 'sin-acceso' }))
   }, [cargar])
 
   const catalogos = carga.fase === 'listo' ? carga.catalogos : null
@@ -177,6 +198,30 @@ export function App() {
       </div>
     </header>
   )
+
+  /* Sin sesión de monday no se muestra nada de la app: ni la barra de operación ni los pasos.
+     No es sólo estético — el servidor rechaza igual cualquier pedido—, pero deja claro de entrada
+     que este no es el camino de acceso, en vez de mostrar una pantalla vacía sin explicación. */
+  if (carga.fase === 'sin-acceso') {
+    return (
+      <div className="app">
+        <div className="pantalla-estado pantalla-estado--bloqueo">
+          <div className="bloqueo-ic">
+            <i className="fas fa-lock" aria-hidden />
+          </div>
+          <h2>No tenés acceso a este contenido</h2>
+          <p>
+            Esta aplicación funciona únicamente dentro de <strong>monday.com</strong>, en el espacio
+            de trabajo de Belaunzaran SA, y con la sesión iniciada.
+          </p>
+          <p className="xs">
+            Abrila desde monday, en el navegador o en la app del celular. Si creés que deberías
+            tener acceso, contactá al administrador.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (carga.fase !== 'listo') {
     return (

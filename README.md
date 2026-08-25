@@ -134,3 +134,42 @@ separador de miles. La conversión está en `aNumero` / `aTextoMonday` (`src/lib
 `lookup_mm3c273r` es una columna **mirror** y la API no permite escribirla: se completa sola con
 los contactos del proveedor conectado. El contacto que se elige en la app sirve para validar que
 el proveedor tenga a quién avisarle, pero no se puede grabar como valor propio de la orden.
+
+## Seguridad: sólo desde monday
+
+La app está publicada en una URL pública, pero **abrirla desde un navegador no sirve de nada**.
+
+Cada vez que monday carga la app le entrega al frontend un `sessionToken`: un JWT firmado con la
+clave secreta de la aplicación, que incluye el usuario y la cuenta. El frontend lo manda en cada
+request y [`api/_guard.ts`](api/_guard.ts) verifica la firma antes de que `api/monday.ts` consulte
+o escriba nada.
+
+**El portón es el backend, no la interfaz.** La pantalla de "No tenés acceso" es sólo para que
+quien entre por el camino equivocado entienda por qué no ve nada; aunque alguien evitara esa
+pantalla, la función seguiría rechazando el pedido con un 401.
+
+Qué se comprueba, en orden:
+
+1. Que el algoritmo de firma sea `HS256` — un token con `alg: none` se rechaza antes de mirarlo.
+2. Que la **firma** valide contra el secreto de la app. Sin la clave no se puede fabricar un token.
+3. Que **no esté vencido** (se tolera un minuto de desfasaje de reloj).
+4. Que la **cuenta** sea la habilitada en `MONDAY_ACCOUNT_ID`. Un token válido de otra cuenta que
+   tuviera la app instalada no alcanza.
+
+La verificación usa WebCrypto y no una librería de JWT porque la función corre en el runtime edge,
+donde no existe el `crypto` de Node del que dependen esas librerías. La comparación de firmas la
+hace `crypto.subtle.verify`, no el código: comparar dos firmas con `===` filtra información por el
+tiempo que tarda en fallar.
+
+### Sobre los dos secretos
+
+monday documenta el *signing secret*, pero según la app puede ser el *client secret* el que valide
+— es la causa más común de "invalid signature". El guardián prueba los dos: ambos son nuestros, así
+que aceptar cualquiera no abre ninguna puerta. Los dos están en el Developer Center de monday, en
+**Basic Information** de la app.
+
+### En desarrollo
+
+En localhost no hay monday que entregue un token, así que la verificación no corre: el proxy de
+Vite pega directo contra la API con `VITE_MONDAY_TOKEN`. La capa de seguridad aplica al deploy,
+que es el único expuesto.
