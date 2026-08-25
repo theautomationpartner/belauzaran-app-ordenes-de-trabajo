@@ -158,10 +158,12 @@ export interface BorradorOrden {
   maquinariaIds: string[]
   bloques: BloqueCampo[]
   /**
-   * Etiqueta de `color_mm0xaytt` con la que se crean las órdenes: dejarlas cargadas o enviarlas
-   * en el acto. Se decide en el último paso, justo antes de emitir.
+   * Lotes cuyas órdenes salen a enviarse apenas se crean. El resto queda cargado sin enviar.
+   *
+   * Se guarda la excepción y no el estado de cada orden porque el envío es la decisión que hay
+   * que tomar a conciencia: lo que no se marca explícitamente, no se manda.
    */
-  estadoEnvio: string
+  enviarAhoraLoteIds: string[]
 }
 
 /**
@@ -193,6 +195,11 @@ export interface OrdenAGenerar {
   loteId: string
   loteNombre: string
   hectareas: number | null
+  /**
+   * Etiqueta de `color_mm0xaytt` con la que se crea ESTA orden. Cada una decide por su cuenta:
+   * se pueden mandar unas y dejar otras cargadas en la misma tanda.
+   */
+  estadoEnvio: string
   /** Hectáreas × U$/Ha. `null` si falta alguno de los dos. */
   totalLaborUsd: number | null
   /** Un subitem por producto, con la cantidad ya calculada para las hectáreas de este lote. */
@@ -222,8 +229,6 @@ export interface CargaAEmitir {
   contacto: (ItemBasico & { telefono: string; email: string }) | null
   maquinarias: ItemBasico[]
   usdPorHa: number
-  /** Etiqueta de `color_mm0xaytt` para las órdenes de esta carga. */
-  estadoEnvio: string
   ordenes: OrdenAGenerar[]
 }
 

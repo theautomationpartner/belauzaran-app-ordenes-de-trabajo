@@ -91,13 +91,15 @@ lee el motivo.
 Al emitir se crea **un elemento por cada par campo + lote** en ✋ Orden de Trabajo, y debajo de
 cada uno **un subelemento por producto**.
 
-Antes de emitir se elige el `🤖 Estado de Envio` con el que nacen:
+En la revisión se marca, **orden por orden**, cuáles salen al contratista apenas se creen. Eso
+define su `🤖 Estado de Envio`:
 
-- **NO Enviar por Ahora** (por defecto) — quedan cargadas y revisables, sin avisarle al contratista.
-- **Crear y Enviar Ahora** — se dispara el envío apenas se crean.
+- **NO Enviar por Ahora** — lo que no se marcó. Queda cargado y revisable, sin avisarle a nadie.
+- **Crear y Enviar Ahora** — lo que se marcó explícitamente.
 
-El valor por defecto es el conservador a propósito: un envío no se puede deshacer, así que mandar
-tiene que ser una decisión explícita y no lo que pasa si nadie tocó nada.
+Se guarda la excepción y no el estado de cada orden: un envío no se puede deshacer, así que mandar
+tiene que ser una decisión deliberada sobre cada orden y no lo que pasa si nadie tocó nada. En una
+misma tanda se pueden mandar unas y dejar otras cargadas.
 
 El nombre sigue la convención del tablero: `LABOR-PROVEEDOR-LOTE-CULTIVO-CAMPAÑA`.
 

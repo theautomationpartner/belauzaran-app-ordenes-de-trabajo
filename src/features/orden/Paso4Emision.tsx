@@ -4,7 +4,7 @@ import { PasoHeader } from '@/components/ui/PasoHeader'
 import { ResumenOrden } from './ResumenOrden'
 import { expandirOrdenes, totalesDe } from '@/lib/orden'
 import { cantidad, hectareas, usd } from '@/lib/format'
-import { OT_ESTADOS_ENVIO, OT_ESTADO_ENVIO_INICIAL } from '@/services/monday/columns'
+import { OT_ESTADO_ENVIAR_AHORA } from '@/services/monday/columns'
 
 interface Props {
   catalogos: Catalogos
@@ -15,10 +15,18 @@ interface Props {
   onEditarCampos: () => void
 }
 
+interface TarjetaProps {
+  orden: OrdenAGenerar
+  indice: number
+  onAlternarEnvio: () => void
+}
+
 /** Una orden = una tarjeta. Adentro, los productos que van a ser sus subitems. */
-function TarjetaOrden({ orden, indice }: { orden: OrdenAGenerar; indice: number }) {
+function TarjetaOrden({ orden, indice, onAlternarEnvio }: TarjetaProps) {
+  const enviaAhora = orden.estadoEnvio === OT_ESTADO_ENVIAR_AHORA
+
   return (
-    <div className="orden-card">
+    <div className={`orden-card ${enviaAhora ? 'orden-card--envia' : ''}`}>
       <div className="orden-head">
         <span className="orden-nro">OT {indice + 1}</span>
         <span className="orden-ubic">
@@ -28,6 +36,24 @@ function TarjetaOrden({ orden, indice }: { orden: OrdenAGenerar; indice: number 
         {/* Las hectáreas del lote son el número que multiplica todo lo demás, así que se
             muestran como dato propio de la orden y no escondidas en una columna. */}
         <span className="chip chip--campo">{hectareas(orden.hectareas)}</span>
+
+        {/* El envío se decide por orden: se puede mandar una y dejar las otras cargadas. */}
+        <button
+          type="button"
+          className={`envio-toggle ${enviaAhora ? 'envio-toggle--on' : ''}`}
+          aria-pressed={enviaAhora}
+          onClick={onAlternarEnvio}
+          title={
+            enviaAhora
+              ? 'Esta orden sale al contratista apenas se cree.'
+              : 'Esta orden queda cargada en el tablero, sin enviarse.'
+          }
+        >
+          <span className="envio-toggle-box">
+            {enviaAhora && <i className="fas fa-check" aria-hidden />}
+          </span>
+          {enviaAhora ? 'Se envía ahora' : 'Enviar ahora'}
+        </button>
       </div>
 
       <div className="orden-body">
@@ -89,6 +115,10 @@ function TarjetaOrden({ orden, indice }: { orden: OrdenAGenerar; indice: number 
  * Muestra las órdenes YA expandidas, una por lote, con sus hectáreas y los productos calculados
  * para esa superficie. Es exactamente lo que va a quedar en el tablero: revisar sobre los bloques
  * del paso anterior obligaría al usuario a hacer esa multiplicación mentalmente.
+ *
+ * Acá también se decide, orden por orden, cuáles salen al contratista apenas se creen. Lo que no
+ * se marca queda cargado sin enviar: el envío no se puede deshacer, así que tiene que ser una
+ * acción deliberada sobre cada orden y no el resultado de no haber tocado nada.
  */
 export function Paso4Emision({
   catalogos,
@@ -102,9 +132,25 @@ export function Paso4Emision({
   const totales = totalesDe(ordenes)
   const sinHectareas = ordenes.filter((o) => o.hectareas == null).length
   const subitems = ordenes.reduce((acc, o) => acc + o.productos.length, 0)
-  /* Los productos son los mismos en todas las ordenes, asi que "por OT" es la cantidad de una
-     cualquiera; el total de subelementos es ese numero por la cantidad de ordenes. */
+  /* Los productos son los mismos en todas las órdenes, así que "por OT" es la cantidad de una
+     cualquiera; el total de subelementos es ese número por la cantidad de órdenes. */
   const porOrden = ordenes[0]?.productos.length ?? 0
+
+  const marcadas = ordenes.filter((o) => o.estadoEnvio === OT_ESTADO_ENVIAR_AHORA)
+  const todasMarcadas = ordenes.length > 0 && marcadas.length === ordenes.length
+
+  const alternarEnvio = (loteId: string) => {
+    const actuales = borrador.enviarAhoraLoteIds
+    onCambio({
+      enviarAhoraLoteIds: actuales.includes(loteId)
+        ? actuales.filter((id) => id !== loteId)
+        : [...actuales, loteId],
+    })
+  }
+
+  const alternarTodas = () => {
+    onCambio({ enviarAhoraLoteIds: todasMarcadas ? [] : ordenes.map((o) => o.loteId) })
+  }
 
   return (
     <div className="view">
@@ -204,9 +250,44 @@ export function Paso4Emision({
           El tablero admite un campo y un lote por orden: cada tarjeta va a ser un item distinto.
         </div>
 
+        {/* Barra de envío: el estado de cada orden y el atajo para marcarlas todas de una. */}
+        <div className="barra-envio">
+          <span className="barra-envio-texto">
+            <i
+              className={`fas fa-${marcadas.length > 0 ? 'paper-plane' : 'inbox'}`}
+              aria-hidden
+            />
+            {marcadas.length === 0 ? (
+              <>
+                Ninguna se envía por ahora: todas quedan cargadas en el tablero. Marcá las que
+                quieras mandar al contratista.
+              </>
+            ) : (
+              <>
+                <strong>
+                  {marcadas.length} de {ordenes.length}
+                </strong>{' '}
+                {marcadas.length === 1 ? 'se envía' : 'se envían'} al crearse
+                {marcadas.length < ordenes.length && '; el resto queda cargado sin enviar'}.
+              </>
+            )}
+          </span>
+          {ordenes.length > 1 && (
+            <button type="button" className="btn btn-outblue btn--sm" onClick={alternarTodas}>
+              <i className={`fas fa-${todasMarcadas ? 'xmark' : 'list-check'}`} aria-hidden />
+              {todasMarcadas ? 'Ninguna' : 'Enviar todas'}
+            </button>
+          )}
+        </div>
+
         <div className="ordenes-lista">
           {ordenes.map((o, i) => (
-            <TarjetaOrden key={o.loteId} orden={o} indice={i} />
+            <TarjetaOrden
+              key={o.loteId}
+              orden={o}
+              indice={i}
+              onAlternarEnvio={() => alternarEnvio(o.loteId)}
+            />
           ))}
         </div>
 
@@ -226,61 +307,19 @@ export function Paso4Emision({
         </div>
       </div>
 
-      <div className="card card--config card--flush">
-        <div className="ctitle">
-          <i className="fas fa-paper-plane" style={{ color: '#6200ee' }} aria-hidden />
-          ¿Qué hacemos con {ordenes.length === 1 ? 'la orden' : 'las órdenes'}?
+      {/* El envío no se puede deshacer: si hay alguna marcada, se avisa antes del botón. */}
+      {marcadas.length > 0 && (
+        <div className="aviso aviso--warn">
+          <i className="fas fa-triangle-exclamation" aria-hidden />
+          <span>
+            {marcadas.length === 1
+              ? 'Una orden va a salir'
+              : `${marcadas.length} órdenes van a salir`}{' '}
+            al contratista apenas se {marcadas.length === 1 ? 'cree' : 'creen'}. Revisá los datos
+            antes de continuar: un envío no se puede deshacer.
+          </span>
         </div>
-        <div className="csub">
-          Se crea un elemento por orden en ✋ Orden de Trabajo con sus productos como
-          subelementos. Lo que cambia es si sale o no al contratista.
-        </div>
-
-        <div className="opciones-envio">
-          {OT_ESTADOS_ENVIO.map((op) => {
-            const elegida = borrador.estadoEnvio === op.etiqueta
-            const envia = op.etiqueta !== OT_ESTADO_ENVIO_INICIAL
-            return (
-              <button
-                type="button"
-                key={op.etiqueta}
-                className={`opcion-envio ${elegida ? 'opcion-envio--sel' : ''} ${
-                  elegida && envia ? 'opcion-envio--alerta' : ''
-                }`}
-                aria-pressed={elegida}
-                onClick={() => onCambio({ estadoEnvio: op.etiqueta })}
-              >
-                <span className="opcion-envio-radio">
-                  {elegida && <i className="fas fa-circle" aria-hidden />}
-                </span>
-                <span className="opcion-envio-body">
-                  <span className="opcion-envio-tit">
-                    {op.titulo}
-                    {!envia && <span className="chip">Por defecto</span>}
-                  </span>
-                  <span className="opcion-envio-det">{op.detalle}</span>
-                  <span className="opcion-envio-col">
-                    Estado en Monday: <strong>{op.etiqueta}</strong>
-                  </span>
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* El envío no se puede deshacer, así que elegir la opción que manda tiene que verse
-            distinto de la que sólo deja la orden cargada. */}
-        {borrador.estadoEnvio !== OT_ESTADO_ENVIO_INICIAL && (
-          <div className="aviso aviso--warn" style={{ marginTop: 14 }}>
-            <i className="fas fa-triangle-exclamation" aria-hidden />
-            <span>
-              {ordenes.length === 1 ? 'La orden va a salir' : `Las ${ordenes.length} órdenes van a salir`}{' '}
-              al contratista apenas se {ordenes.length === 1 ? 'cree' : 'creen'}. Revisá los datos
-              antes de continuar: un envío no se puede deshacer.
-            </span>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }

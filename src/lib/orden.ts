@@ -19,7 +19,11 @@ import type {
   TotalesCarga,
 } from '@/types'
 import { aNumero } from './format'
-import { OT_ESTADO_ENVIO_INICIAL, REALIZADO_POR } from '@/services/monday/columns'
+import {
+  OT_ESTADO_ENVIAR_AHORA,
+  OT_ESTADO_ENVIO_INICIAL,
+  REALIZADO_POR,
+} from '@/services/monday/columns'
 
 let contador = 0
 /** Clave local de un bloque o de una línea. No usa `crypto.randomUUID` para no depender de HTTPS. */
@@ -37,7 +41,7 @@ export const borradorInicial = (): BorradorOrden => ({
   productos: [],
   maquinariaIds: [],
   bloques: [],
-  estadoEnvio: OT_ESTADO_ENVIO_INICIAL,
+  enviarAhoraLoteIds: [],
 })
 
 /** Etiquetas disponibles para "Realizado por". */
@@ -255,6 +259,7 @@ function sumarDisponible(valores: (number | null)[]): number | null {
  */
 export function expandirOrdenes(borrador: BorradorOrden, catalogos: Catalogos): OrdenAGenerar[] {
   const usdHa = aNumero(borrador.usdPorHa)
+  const enviarAhora = new Set(borrador.enviarAhoraLoteIds)
   const ordenes: OrdenAGenerar[] = []
 
   for (const bloque of borrador.bloques) {
@@ -277,6 +282,10 @@ export function expandirOrdenes(borrador: BorradorOrden, catalogos: Catalogos): 
         loteId: lote.id,
         loteNombre: lote.nombre,
         hectareas,
+        // Sólo sale lo que se marcó una por una; el resto queda cargado sin enviar.
+        estadoEnvio: enviarAhora.has(lote.id)
+          ? OT_ESTADO_ENVIAR_AHORA
+          : OT_ESTADO_ENVIO_INICIAL,
         totalLaborUsd,
         productos,
         totalProductosUsd,
@@ -340,7 +349,6 @@ export function armarCarga(borrador: BorradorOrden, catalogos: Catalogos): Carga
       soloIdNombre,
     ),
     usdPorHa,
-    estadoEnvio: borrador.estadoEnvio,
     ordenes,
   }
 }

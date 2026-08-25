@@ -66,6 +66,9 @@ export const OT_ESTADOS_ENVIO = [
  */
 export const OT_ESTADO_ENVIO_INICIAL: string = OT_ESTADOS_ENVIO[0].etiqueta
 
+/** Estado de las órdenes que el usuario marcó para que salgan apenas se crean. */
+export const OT_ESTADO_ENVIAR_AHORA: string = OT_ESTADOS_ENVIO[1].etiqueta
+
 /**
  * Quién ejecuta la labor (`color_mm1ftcaf`) y con qué tipo de proveedor se corresponde
  * (`dropdown_mm39x0j7` del tablero de Proveedores). Elegir esto primero es lo que reduce la

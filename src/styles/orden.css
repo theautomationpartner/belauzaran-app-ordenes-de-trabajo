@@ -1058,3 +1058,82 @@
 .dd-cerrar:hover {
   background: var(--hover-gris);
 }
+
+/* ===== Envío por orden (paso 4) ===== */
+.barra-envio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 11px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--tint-summary-bd);
+  border-radius: 10px;
+  background: #fff;
+}
+.barra-envio-texto {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  color: var(--text-gray);
+  min-width: 0;
+}
+.barra-envio-texto strong {
+  color: var(--text-dark);
+}
+
+/* Interruptor de envío de una orden. Apagado es el estado normal, así que se lee discreto;
+   encendido se pinta ámbar, que es el color con el que la app marca lo que sale de verdad. */
+.envio-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: #fff;
+  color: var(--text-gray);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: none;
+  transition: 0.12s;
+}
+.envio-toggle:hover {
+  background: var(--hover-gris);
+  border-color: var(--sel-bd);
+}
+.envio-toggle-box {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: #fff;
+  flex: none;
+}
+.envio-toggle--on {
+  border-color: #f79009;
+  background: #fffaeb;
+  color: #93591a;
+}
+.envio-toggle--on .envio-toggle-box {
+  background: #b25e09;
+  border-color: #b25e09;
+}
+/* La orden que efectivamente sale queda marcada entera, no sólo en su interruptor. */
+.orden-card--envia {
+  border-color: #fedf89;
+}
+.orden-card--envia .orden-head {
+  background: #fffaeb;
+  border-bottom-color: #fedf89;
+}

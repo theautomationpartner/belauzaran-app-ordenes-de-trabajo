@@ -10,6 +10,7 @@ import { Paso4Emision } from '@/features/orden/Paso4Emision'
 import { traerCatalogos } from '@/services/monday/catalogos'
 import { SinAcceso, mondayHabilitado } from '@/services/monday/sdk'
 import { obtenerDatosSesion } from '@/services/monday/sesion'
+import { OT_ESTADO_ENVIAR_AHORA } from '@/services/monday/columns'
 import { crearOrdenes } from '@/services/monday/crearOrdenes'
 import {
   armarCarga,
@@ -209,14 +210,12 @@ export function App() {
           <div className="bloqueo-ic">
             <i className="fas fa-lock" aria-hidden />
           </div>
+          {/* Deliberadamente escueto: a quien entra por el camino equivocado no se le cuenta de
+              qué cuenta se trata, qué se comprueba ni a quién reclamarle. Cada dato de más es una
+              pista para quien esté probando. */}
           <h2>No tenés acceso a este contenido</h2>
           <p>
-            Esta aplicación funciona únicamente dentro de <strong>monday.com</strong>, en el espacio
-            de trabajo de Belaunzaran SA, y con la sesión iniciada.
-          </p>
-          <p className="xs">
-            Abrila desde monday, en el navegador o en la app del celular. Si creés que deberías
-            tener acceso, contactá al administrador.
+            Esta aplicación funciona únicamente dentro de <strong>monday.com</strong>.
           </p>
         </div>
       </div>
@@ -321,6 +320,16 @@ export function App() {
   }
 
   const enUltimoPaso = paso === PASOS.length - 1
+  /* El pie repite la decisión de envío al lado del botón: es lo último que se lee antes de
+     apretar, y es la parte de la acción que no se puede deshacer. */
+  const seEnvian = ordenes.filter((o) => o.estadoEnvio === OT_ESTADO_ENVIAR_AHORA).length
+  const mensajeEmision =
+    `Se ${ordenes.length === 1 ? 'crea' : 'crean'} ${ordenes.length} orden${
+      ordenes.length === 1 ? '' : 'es'
+    }. ` +
+    (seEnvian === 0
+      ? 'Ninguna se envía por ahora.'
+      : `${seEnvian} ${seEnvian === 1 ? 'sale' : 'salen'} al contratista.`)
   const bloqueado = faltantes.length > 0
   /* Después del guard de arriba `carga` ya está en la variante `listo`; se relee de ahí porque
      `catalogos` se derivó antes de esa comprobación y sigue admitiendo `null` para el tipador. */
@@ -395,7 +404,7 @@ export function App() {
             {bloqueado
               ? faltantes[0]
               : enUltimoPaso
-                ? `Se ${ordenes.length === 1 ? 'va' : 'van'} a crear ${ordenes.length} orden${ordenes.length === 1 ? '' : 'es'} en estado «${borrador.estadoEnvio}».`
+                ? mensajeEmision
                 : `Siguiente: ${PASOS[paso + 1]}`}
           </span>
 

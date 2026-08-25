@@ -55,8 +55,9 @@ function columnasDeOrden(carga: CargaAEmitir, orden: OrdenAGenerar): Record<stri
     [COL_OT.campo]: conexion(orden.campoId),
     [COL_OT.lote]: conexion(orden.loteId),
     [COL_OT.usdPorHa]: aTextoMonday(carga.usdPorHa),
-    // Lo elige el usuario en el último paso: dejarla cargada o largarla al envío en el acto.
-    [COL_OT.estadoEnvio]: estado(carga.estadoEnvio || OT_ESTADO_ENVIO_INICIAL),
+    /* Cada orden trae el suyo: en una misma tanda se pueden mandar unas y dejar otras
+       cargadas. Si viniera vacío, se cae al conservador. */
+    [COL_OT.estadoEnvio]: estado(orden.estadoEnvio || OT_ESTADO_ENVIO_INICIAL),
   }
 
   // La maquinaria es opcional: mandar la columna vacía borraría lo que hubiera puesto una
