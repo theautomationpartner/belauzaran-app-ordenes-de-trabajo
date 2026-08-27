@@ -45,7 +45,7 @@ function TarjetaOrden({ orden, indice, onAlternarEnvio }: TarjetaProps) {
           onClick={onAlternarEnvio}
           title={
             enviaAhora
-              ? 'Esta orden sale al contratista apenas se cree.'
+              ? 'Esta orden va a ser enviada al contratista apenas se cree.'
               : 'Esta orden queda cargada en el tablero, sin enviarse.'
           }
         >
@@ -116,9 +116,9 @@ function TarjetaOrden({ orden, indice, onAlternarEnvio }: TarjetaProps) {
  * para esa superficie. Es exactamente lo que va a quedar en el tablero: revisar sobre los bloques
  * del paso anterior obligaría al usuario a hacer esa multiplicación mentalmente.
  *
- * Acá también se decide, orden por orden, cuáles salen al contratista apenas se creen. Lo que no
- * se marca queda cargado sin enviar: el envío no se puede deshacer, así que tiene que ser una
- * acción deliberada sobre cada orden y no el resultado de no haber tocado nada.
+ * Acá también se decide, orden por orden, cuáles se le envían al contratista apenas se creen. Lo
+ * que no se marca queda cargado sin enviar: el envío no se puede deshacer, así que tiene que ser
+ * una acción deliberada sobre cada orden y no el resultado de no haber tocado nada.
  */
 export function Paso4Emision({
   catalogos,
@@ -259,15 +259,15 @@ export function Paso4Emision({
             />
             {marcadas.length === 0 ? (
               <>
-                Ninguna se envía por ahora: todas quedan cargadas en el tablero. Marcá las que
-                quieras mandar al contratista.
+                Ninguna va a ser enviada por ahora: todas quedan cargadas en el tablero. Marcá
+                las que quieras enviarle al contratista.
               </>
             ) : (
               <>
                 <strong>
                   {marcadas.length} de {ordenes.length}
                 </strong>{' '}
-                {marcadas.length === 1 ? 'se envía' : 'se envían'} al crearse
+                {marcadas.length === 1 ? 'va a ser enviada' : 'van a ser enviadas'} al crearse
                 {marcadas.length < ordenes.length && '; el resto queda cargado sin enviar'}.
               </>
             )}
@@ -313,10 +313,9 @@ export function Paso4Emision({
           <i className="fas fa-triangle-exclamation" aria-hidden />
           <span>
             {marcadas.length === 1
-              ? 'Una orden va a salir'
-              : `${marcadas.length} órdenes van a salir`}{' '}
-            al contratista apenas se {marcadas.length === 1 ? 'cree' : 'creen'}. Revisá los datos
-            antes de continuar: un envío no se puede deshacer.
+              ? 'Una orden va a ser enviada al contratista apenas se cree.'
+              : `${marcadas.length} órdenes van a ser enviadas al contratista apenas se creen.`}{' '}
+            Revisá los datos antes de continuar: un envío no se puede deshacer.
           </span>
         </div>
       )}

@@ -949,6 +949,13 @@
   background: var(--purple);
   border-color: var(--purple);
 }
+/* La misma casilla dentro de un desplegable de selección múltiple (campos). Sin esta regla el
+   tilde quedaba blanco sobre blanco y lo elegido sólo se distinguía por la negrita. Va en verde
+   campo, igual que el tilde de los lotes, para que "elegido" se lea siempre del mismo color. */
+.dd-op--sel .filtro-check {
+  background: var(--campo);
+  border-color: var(--campo);
+}
 
 /* Filtros activos, fuera del menú: se ven sin abrir nada y se quitan de a uno. */
 .filtros-elegidos {

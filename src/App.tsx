@@ -329,7 +329,9 @@ export function App() {
     }. ` +
     (seEnvian === 0
       ? 'Ninguna se envía por ahora.'
-      : `${seEnvian} ${seEnvian === 1 ? 'sale' : 'salen'} al contratista.`)
+      : seEnvian === 1
+        ? 'Una va a ser enviada al contratista.'
+        : `${seEnvian} van a ser enviadas al contratista.`)
   const bloqueado = faltantes.length > 0
   /* Después del guard de arriba `carga` ya está en la variante `listo`; se relee de ahí porque
      `catalogos` se derivó antes de esa comprobación y sigue admitiendo `null` para el tipador. */
