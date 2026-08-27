@@ -14,6 +14,26 @@ interface Props {
 }
 
 /**
+ * Ancho de columna de la grilla de lotes, en píxeles, según el nombre más largo del campo.
+ *
+ * Los lotes arrastran el nombre del campo adelante ("LA BERNARDA-LOTE 10 A"), así que con un ancho
+ * fijo los nombres largos se cortaban justo en la parte que los distingue. Midiendo por campo, uno
+ * de nombres cortos entra en más columnas y uno de nombres largos usa menos pero enteras.
+ *
+ * Es una estimación por cantidad de caracteres, no una medición real del texto: alcanza porque el
+ * nombre puede pasar a una segunda línea si se queda corta (ver `.lote-nom`), y evita tener que
+ * medir en un canvas y recalcular en cada render. Los topes acotan los dos extremos: que un campo
+ * de nombres cortos no deje celdas ridículamente angostas, y que uno larguísimo no arme una sola
+ * columna gigante.
+ */
+function anchoColumnaLotes(lotes: { nombre: string }[]): string {
+  const masLargo = lotes.reduce((max, l) => Math.max(max, l.nombre.length), 0)
+  // ~8,4 px por carácter en mayúsculas a 13,5 px semibold, + la casilla, el gap y los paddings.
+  const estimado = Math.round(masLargo * 8.4) + 80
+  return `${Math.min(Math.max(estimado, 190), 420)}px`
+}
+
+/**
  * Paso 3 — Campos y lotes.
  *
  * Los campos se eligen desde un desplegable con búsqueda y selección múltiple, igual que el de
@@ -180,7 +200,12 @@ export function Paso3Campos({ catalogos, borrador, onCambio, onEditarDatos }: Pr
                         </span>
                       </div>
                     ) : (
-                      <div className="lotes-grid">
+                      <div
+                        className="lotes-grid"
+                        style={
+                          { '--ancho-lote': anchoColumnaLotes(campo.lotes) } as React.CSSProperties
+                        }
+                      >
                         {campo.lotes.map((lote) => {
                           const marcado = bloque.loteIds.includes(lote.id)
                           const ocupado = tomados.has(lote.id)

@@ -121,9 +121,17 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+/* Grilla de lotes: el ancho de columna lo fija el nombre MAS LARGO del campo, que Paso3Campos
+   calcula y pasa en --ancho-lote. Con un ancho fijo, los nombres largos —que arrastran el nombre
+   del campo adelante— se cortaban con puntos suspensivos y no se podia distinguir un lote de otro.
+   Al depender del contenido, un campo de nombres cortos muestra mas columnas y uno de nombres
+   largos muestra menos, pero enteras.
+
+   El `min(ancho, 100%)` es lo que evita que la grilla desborde en el celular: sin eso, una
+   columna de 260px dentro de una pantalla de 340px empuja scroll horizontal. */
 .lotes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--ancho-lote, 190px), 100%), 1fr));
   gap: 8px;
 }
 .lote {
@@ -179,12 +187,14 @@
   flex-direction: column;
   gap: 1px;
 }
+/* El nombre NUNCA se recorta. El ancho de columna ya esta calculado para que entre, pero si la
+   estimacion se queda corta —una fuente distinta, un zoom— el nombre baja a una segunda linea en
+   vez de perder el final, que es justo la parte que identifica al lote. */
 .lote-nom {
   font-size: 13.5px;
   font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 .lote-ha {
   font-size: 11.5px;
