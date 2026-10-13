@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { Cultivo, OrdenProduccion } from '@/types'
 import { PasoHeader } from '@/components/ui/PasoHeader'
 import { SelectorBuscable, type OpcionSelector } from '@/components/ui/SelectorBuscable'
+import { SelectorMultiple } from '@/components/ui/SelectorMultiple'
 import { normalizar, plural } from '@/lib/format'
 import { TarjetaProduccion } from './TarjetaProduccion'
 
@@ -24,8 +25,10 @@ const unicos = (valores: string[]) =>
  */
 export function PasoElegir({ ops, cultivos, asignaciones, onCambio }: Props) {
   const [consulta, setConsulta] = useState('')
-  const [campo, setCampo] = useState<string | null>(null)
-  const [campana, setCampana] = useState<string | null>(null)
+  /* Campos y campañas admiten varios a la vez: dentro de un filtro alcanza con coincidir con
+     uno; entre filtros, se piden los dos. Vacío = sin filtrar. */
+  const [campos, setCampos] = useState<string[]>([])
+  const [campanas, setCampanas] = useState<string[]>([])
 
   /* Barbecho no se ofrece como destino: asignarlo dejaría la orden exactamente como está. */
   const opcionesCultivo: OpcionSelector[] = useMemo(
@@ -36,25 +39,26 @@ export function PasoElegir({ ops, cultivos, asignaciones, onCambio }: Props) {
     [cultivos],
   )
 
-  const opcionesCampo = useMemo(
-    () => unicos(ops.map((o) => o.campo)).map((c) => ({ id: c, nombre: c })),
-    [ops],
-  )
-  const opcionesCampana = useMemo(
-    () => unicos(ops.map((o) => o.campana)).map((c) => ({ id: c, nombre: c })),
-    [ops],
-  )
+  /* Cada opción dice cuántas órdenes en barbecho tiene: ayuda a decidir antes de filtrar. */
+  const conCuenta = (valores: string[]) =>
+    unicos(valores).map((v) => ({
+      id: v,
+      nombre: v,
+      detalle: plural(valores.filter((x) => x === v).length, 'orden en barbecho', 'órdenes en barbecho'),
+    }))
+  const opcionesCampo = useMemo(() => conCuenta(ops.map((o) => o.campo)), [ops])
+  const opcionesCampana = useMemo(() => conCuenta(ops.map((o) => o.campana)), [ops])
 
   const visibles = useMemo(() => {
     const q = normalizar(consulta.trim())
     return ops.filter((o) => {
-      if (campo && o.campo !== campo) return false
-      if (campana && o.campana !== campana) return false
+      if (campos.length > 0 && !campos.includes(o.campo)) return false
+      if (campanas.length > 0 && !campanas.includes(o.campana)) return false
       if (!q) return true
       const ots = o.ordenesTrabajo.map((t) => t.nombre).join(' ')
       return normalizar(`${o.nombre} ${o.lote} ${ots}`).includes(q)
     })
-  }, [ops, consulta, campo, campana])
+  }, [ops, consulta, campos, campanas])
 
   const marcadas = Object.keys(asignaciones)
   const sinCultivo = marcadas.filter((id) => !asignaciones[id]).length
@@ -86,7 +90,14 @@ export function PasoElegir({ ops, cultivos, asignaciones, onCambio }: Props) {
     onCambio(Object.fromEntries(marcadas.map((id) => [id, cultivoId])))
   }
 
-  const hayFiltro = Boolean(consulta || campo || campana)
+  const hayFiltro = Boolean(consulta || campos.length || campanas.length)
+
+  /* Los elegidos quedan a la vista como chips con su cruz: el desplegable sólo dice
+     "3 seleccionados" y obligaría a abrirlo para saber cuáles. */
+  const chips = [
+    ...campos.map((v) => ({ v, quitar: () => setCampos(campos.filter((x) => x !== v)) })),
+    ...campanas.map((v) => ({ v, quitar: () => setCampanas(campanas.filter((x) => x !== v)) })),
+  ]
 
   return (
     <div className="view">
@@ -112,23 +123,35 @@ export function PasoElegir({ ops, cultivos, asignaciones, onCambio }: Props) {
           </div>
           <div className="ig">
             <span className="ig-lbl">Campo</span>
-            <SelectorBuscable
+            <SelectorMultiple
               opciones={opcionesCampo}
-              valor={campo}
-              onCambio={setCampo}
+              valores={campos}
+              onCambio={setCampos}
               placeholder="Todos los campos"
             />
           </div>
           <div className="ig">
             <span className="ig-lbl">Campaña</span>
-            <SelectorBuscable
+            <SelectorMultiple
               opciones={opcionesCampana}
-              valor={campana}
-              onCambio={setCampana}
+              valores={campanas}
+              onCambio={setCampanas}
               placeholder="Todas las campañas"
             />
           </div>
         </div>
+        {chips.length > 0 && (
+          <div className="filtros-elegidos" style={{ marginTop: 10 }}>
+            {chips.map((c) => (
+              <span className="chip-filtro" key={c.v}>
+                {c.v}
+                <button type="button" onClick={c.quitar} aria-label={`Quitar el filtro ${c.v}`}>
+                  <i className="fas fa-xmark" aria-hidden />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
         {hayFiltro && (
           <button
             type="button"
@@ -136,8 +159,8 @@ export function PasoElegir({ ops, cultivos, asignaciones, onCambio }: Props) {
             style={{ marginTop: 8 }}
             onClick={() => {
               setConsulta('')
-              setCampo(null)
-              setCampana(null)
+              setCampos([])
+              setCampanas([])
             }}
           >
             <i className="fas fa-xmark" aria-hidden /> Limpiar filtros
