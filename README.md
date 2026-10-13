@@ -1,6 +1,8 @@
 # Belaunzaran SA · Operaciones
 
-App de tablero (board view) para Monday, en React + Vite. La barra superior elige la operación:
+App de tablero (board view) para Monday, en React + Vite. Abre en una pantalla de inicio
+("¿Qué vas a hacer?") sin ninguna operación cargada: se elige con las tarjetas o con el
+desplegable de la cabecera, y el botón de la casita vuelve al inicio. Las operaciones:
 
 - **Cargar Orden de Trabajo** — reemplaza la carga por formulario de las órdenes de trabajo por un
   flujo guiado.

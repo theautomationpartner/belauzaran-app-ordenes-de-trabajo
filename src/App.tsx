@@ -9,6 +9,7 @@ import { Paso3Campos } from '@/features/orden/Paso3Campos'
 import { Paso4Emision } from '@/features/orden/Paso4Emision'
 import { FlujoBarbecho } from '@/features/barbecho/FlujoBarbecho'
 import { FlujoComprobante } from '@/features/comprobante/FlujoComprobante'
+import { Inicio, type TarjetaOperacion } from '@/features/inicio/Inicio'
 import { traerCatalogos } from '@/services/monday/catalogos'
 import { SinAcceso, mondayHabilitado } from '@/services/monday/sdk'
 import { obtenerDatosSesion } from '@/services/monday/sesion'
@@ -25,11 +26,33 @@ import {
 
 const PASOS = ['Datos de la orden', 'Productos', 'Campos y lotes', 'Revisar y emitir'] as const
 
-/** Operaciones que resuelve la app. Cada una tiene su propio flujo y sus propias etapas. */
-const OPERACIONES: { id: Operacion; nombre: string }[] = [
-  { id: 'ORDEN_DE_TRABAJO', nombre: 'Cargar Orden de Trabajo' },
-  { id: 'ASIGNACION_BARBECHO', nombre: 'Asignación de Barbecho' },
-  { id: 'REMITO_FACTURA', nombre: 'Registrar Remito/Factura' },
+/**
+ * Operaciones que resuelve la app. Cada una tiene su propio flujo y sus propias etapas. El nombre
+ * es el mismo en el desplegable de la cabecera y en las tarjetas del inicio.
+ */
+const OPERACIONES: TarjetaOperacion[] = [
+  {
+    id: 'ORDEN_DE_TRABAJO',
+    nombre: 'Cargar Orden de Trabajo',
+    descripcion: 'Órdenes por lote para el contratista, con la labor, los productos y su envío.',
+    icono: 'tractor',
+    color: 'inicio-op--azul',
+  },
+  {
+    id: 'ASIGNACION_BARBECHO',
+    nombre: 'Asignación de Barbecho',
+    descripcion:
+      'Asigná el cultivo a las órdenes de producción en barbecho y actualizá sus OT, confirmaciones y stock.',
+    icono: 'seedling',
+    color: 'inicio-op--verde',
+  },
+  {
+    id: 'REMITO_FACTURA',
+    nombre: 'Registrar Remito/Factura',
+    descripcion: 'Subí un remito (PDF o foto) o una factura en PDF a su tablero.',
+    icono: 'file-arrow-up',
+    color: 'inicio-op--ambar',
+  },
 ]
 
 type EstadoCarga =
@@ -46,7 +69,8 @@ type EstadoEmision =
   | { fase: 'error'; mensaje: string }
 
 export function App() {
-  const [operacion, setOperacion] = useState<Operacion>('ORDEN_DE_TRABAJO')
+  /** `null` = pantalla de inicio: la app abre sin ninguna operación cargada. */
+  const [operacion, setOperacion] = useState<Operacion | null>(null)
   /** Mensaje de la operación que tiene algo a medio cargar en monday; `null` si no hay nada. */
   const [pendiente, setPendiente] = useState<string | null>(null)
   const [carga, setCarga] = useState<EstadoCarga>({ fase: 'cargando' })
@@ -178,6 +202,18 @@ export function App() {
     setMostrarFaltantes(false)
   }
 
+  /**
+   * Cambia de operación (o vuelve al inicio con `null`). Desarma la pantalla actual: si quedó
+   * algo a medio cargar en monday, se pregunta antes.
+   */
+  const elegirOperacion = (id: Operacion | null) => {
+    if (id === operacion) return
+    const destino = id ? 'cambiar de operación' : 'volver al inicio'
+    if (pendiente && !window.confirm(`${pendiente} ¿Querés ${destino} igual?`)) return
+    setOperacion(id)
+    window.scrollTo({ top: 0 })
+  }
+
   /* La cabecera es común a todas las operaciones; lo que cambia son las etapas, que cada flujo
      pasa como `pasos`. */
   const armarCabecera = (pasos: ReactNode) => (
@@ -188,6 +224,17 @@ export function App() {
           <LogoEmpresa />
         </div>
         <div className="topbar-ctx">
+          {operacion && (
+            <button
+              type="button"
+              className="btn btn-inicio"
+              onClick={() => elegirOperacion(null)}
+              title="Volver al inicio"
+              aria-label="Volver al inicio"
+            >
+              <i className="fas fa-house" aria-hidden />
+            </button>
+          )}
           <div className="topsel-item">
             <span className="topsel-lbl">Seleccionar tipo de operación:</span>
             <div style={{ width: 260, maxWidth: '100%' }}>
@@ -197,10 +244,7 @@ export function App() {
                 // Volver a tocar la operación elegida la "deselecciona": ahí se queda donde está.
                 onCambio={(id) => {
                   const elegida = OPERACIONES.find((o) => o.id === id)
-                  if (!elegida || elegida.id === operacion) return
-                  // Cambiar de operación desarma la pantalla actual: si quedó algo a medias, se pregunta.
-                  if (pendiente && !window.confirm(`${pendiente} ¿Cambiar de operación igual?`)) return
-                  setOperacion(elegida.id)
+                  if (elegida) elegirOperacion(elegida.id)
                 }}
                 placeholder="Elegí la operación…"
                 umbralBusqueda={99}
@@ -239,6 +283,21 @@ export function App() {
     )
   }
 
+  /* Inicio: se muestra apenas se abre, mientras los catálogos se cargan de fondo. */
+  if (operacion === null) {
+    return (
+      <div className="app">
+        {armarCabecera(null)}
+        <Inicio operaciones={OPERACIONES} onElegir={elegirOperacion} />
+      </div>
+    )
+  }
+
+  /* Remito/Factura no usa los catálogos: no tiene por qué esperarlos ni depender de que carguen. */
+  if (operacion === 'REMITO_FACTURA') {
+    return <FlujoComprobante cabecera={armarCabecera} onPendiente={setPendiente} />
+  }
+
   if (carga.fase !== 'listo') {
     return (
       <div className="app">
@@ -268,10 +327,6 @@ export function App() {
   /* La asignación de barbecho usa los mismos catálogos (los cultivos) y trae aparte lo suyo. */
   if (operacion === 'ASIGNACION_BARBECHO') {
     return <FlujoBarbecho cultivos={carga.catalogos.cultivos} cabecera={armarCabecera} />
-  }
-
-  if (operacion === 'REMITO_FACTURA') {
-    return <FlujoComprobante cabecera={armarCabecera} onPendiente={setPendiente} />
   }
 
   /* Emisión terminada. Se detalla orden por orden en vez de dar un "listo" global: como los

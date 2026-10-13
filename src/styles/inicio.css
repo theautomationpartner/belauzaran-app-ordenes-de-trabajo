@@ -1,0 +1,126 @@
+/* Pantalla de inicio: una tarjeta de color por operación. */
+.inicio {
+  max-width: 980px;
+  padding-top: 8px;
+}
+.inicio-tit {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #1f2937;
+}
+.inicio-sub {
+  margin: 6px 0 22px;
+  font-size: 14px;
+  color: var(--text-gray);
+}
+.inicio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.inicio-op {
+  --op: var(--primary-blue);
+  --op-suave: #eaf2fd;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--tint-neutral-bd);
+  border-left: 5px solid var(--op);
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-dark);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
+}
+.inicio-op:hover,
+.inicio-op:focus-visible {
+  outline: none;
+  background: var(--op-suave);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--op) 20%, transparent);
+}
+.inicio-op--azul {
+  --op: #0073ea;
+  --op-suave: #eaf2fd;
+}
+.inicio-op--verde {
+  --op: #2f6f4e;
+  --op-suave: #eaf4ee;
+}
+.inicio-op--ambar {
+  --op: #b25e09;
+  --op-suave: #fff4e5;
+}
+.inicio-op-ic {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: 14px;
+  background: var(--op);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.inicio-op-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.inicio-op-nom {
+  font-size: 16.5px;
+  font-weight: 800;
+  color: var(--op);
+}
+.inicio-op-desc {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-gray);
+}
+.inicio-op-flecha {
+  color: var(--op);
+  font-size: 14px;
+  flex: none;
+}
+
+/* Botón "Inicio" de la cabecera. */
+.btn-inicio {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-dark);
+  font-size: 17px;
+  flex: none;
+}
+.btn-inicio:hover:not(:disabled) {
+  background: #f4f5f7;
+  color: var(--primary-blue);
+}
+
+@media (max-width: 560px) {
+  .inicio-tit {
+    font-size: 23px;
+  }
+  .inicio-grid {
+    grid-template-columns: 1fr;
+  }
+  .inicio-op {
+    padding: 16px;
+    gap: 12px;
+  }
+  .inicio-op-ic {
+    width: 46px;
+    height: 46px;
+    font-size: 20px;
+  }
+}
