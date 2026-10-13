@@ -249,5 +249,14 @@ Vercel corta los pedidos de más de ~4,5 MB. Por eso las fotos que pasan de ~3,6
 guardar en el navegador como JPEG de hasta 2400 px de lado (el remito se sigue leyendo), y los PDF
 de más de 4 MB se rechazan con un aviso.
 
-Primero se crea el item y después se adjunta el archivo. Si la subida falla, el item queda creado
-y la pantalla de resultado ofrece reintentar sólo el archivo.
+Orden de las escrituras:
+
+- **Remito:** se crea el item con sus datos y después se sube el archivo. La automatización del
+  tablero procesa el remito sólo si tiene archivo (al crearse o cuando cambia la columna), así que
+  un remito que quedó sin archivo no dispara nada a medias.
+- **Factura:** se crea el item **sin estado**, se sube el PDF y **recién con el PDF arriba** se
+  marca `MANUAL`, que es lo que la pone a procesar. Si el PDF no sube, la factura no se marca.
+
+Si una etapa falla, la pantalla lo dice y ofrece retomar **sobre el mismo item** (no crea otro).
+El aviso de éxito aparece sólo cuando terminaron todas. Mientras se carga, o si quedó algo a
+medias, la app avisa antes de cerrar o recargar la página y antes de cambiar de operación.

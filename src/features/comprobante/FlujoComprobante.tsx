@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { motivoPeso, motivoRechazo, prepararArchivo, peso } from '@/lib/archivos'
 import {
+  completarFactura,
   crearFactura,
   crearRemito,
-  columnaArchivoRemito,
-  reintentarArchivo,
+  subirArchivoRemito,
   traerDatosRemito,
   type DatosRemito,
   type ResultadoAlta,
 } from '@/services/monday/comprobantes'
-import { COL_FACTURA, TABLERO_FACTURAS, TABLERO_REMITOS } from '@/services/monday/columns'
+import { TABLERO_FACTURAS, TABLERO_REMITOS } from '@/services/monday/columns'
 import { SelectorArchivo } from './SelectorArchivo'
 
 type Tipo = 'REMITO' | 'FACTURA'
@@ -17,6 +17,11 @@ type Formato = 'PDF' | 'JPEG'
 
 interface Props {
   cabecera: (pasos: ReactNode) => ReactNode
+  /**
+   * Avisa a la app si hay algo a medio cargar (con el texto a mostrar), para que no deje cambiar
+   * de operación sin preguntar. `null` cuando no hay nada pendiente.
+   */
+  onPendiente?: (mensaje: string | null) => void
 }
 
 type EstadoDatos =
@@ -27,7 +32,17 @@ type EstadoDatos =
 type EstadoEnvio =
   | { fase: 'inactivo' }
   | { fase: 'enviando'; etapa: string }
-  | { fase: 'terminado'; tipo: Tipo; resultado: ResultadoAlta; columna: string; archivo: File }
+  /** Todas las etapas terminaron. */
+  | { fase: 'terminado'; tipo: Tipo; resultado: ResultadoAlta; archivo: File }
+  /** El item existe pero falta alguna etapa: se retoma sobre el mismo item. */
+  | {
+      fase: 'incompleto'
+      tipo: Tipo
+      resultado: ResultadoAlta
+      archivo: File
+      formato: Formato | null
+      reintentando: boolean
+    }
   | { fase: 'error'; mensaje: string }
 
 const iniciales = (nombre: string) =>
@@ -115,7 +130,7 @@ function Opcion({ activa, apagada, color, icono, titulo, detalle, onElegir, gran
  * el archivo adjunto. Es un formulario de una sola pantalla en bloques numerados: son pocos datos
  * y en el celular se completa de arriba abajo sin saltar entre pasos.
  */
-export function FlujoComprobante({ cabecera }: Props) {
+export function FlujoComprobante({ cabecera, onPendiente }: Props) {
   const [datos, setDatos] = useState<EstadoDatos>({ fase: 'cargando' })
   const [tipo, setTipo] = useState<Tipo | null>(null)
   const [personaId, setPersonaId] = useState<string | null>(null)
@@ -202,6 +217,37 @@ export function FlujoComprobante({ cabecera }: Props) {
     setMostrarFaltantes(false)
   }
 
+  /** Se avisa al salir mientras haya algo a medio cargar en monday. */
+  const pendiente =
+    envio.fase === 'enviando'
+      ? 'Todavía se está cargando en monday. Si salís ahora puede quedar a medio cargar.'
+      : envio.fase === 'incompleto'
+        ? `${envio.tipo === 'REMITO' ? 'El remito' : 'La factura'} quedó sin terminar de cargar. Si salís, queda incompleto en monday.`
+        : null
+
+  useEffect(() => {
+    onPendiente?.(pendiente)
+    if (!pendiente) return
+    /* Cerrar la pestaña o recargar muestra el aviso del navegador (el texto lo pone él). */
+    const avisar = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', avisar)
+    return () => window.removeEventListener('beforeunload', avisar)
+  }, [pendiente, onPendiente])
+
+  // Al salir de la operación se libera el aviso de la app.
+  useEffect(() => () => onPendiente?.(null), [onPendiente])
+
+  const cerrarResultado = (r: ResultadoAlta, t: Tipo, f: File, fmt: Formato | null) => {
+    setEnvio(
+      r.completo
+        ? { fase: 'terminado', tipo: t, resultado: r, archivo: f }
+        : { fase: 'incompleto', tipo: t, resultado: r, archivo: f, formato: fmt, reintentando: false },
+    )
+  }
+
   const crear = async () => {
     if (bloqueado || !tipo || !archivo || !formatoArchivo) {
       setMostrarFaltantes(true)
@@ -218,69 +264,115 @@ export function FlujoComprobante({ cabecera }: Props) {
       setEnvio({ fase: 'enviando', etapa: 'Preparando el archivo…' })
       const listo = await prepararArchivo(archivo, formatoArchivo)
 
-      setEnvio({ fase: 'enviando', etapa: tipo === 'REMITO' ? 'Creando el remito…' : 'Creando la factura…' })
+      setEnvio({
+        fase: 'enviando',
+        etapa: tipo === 'REMITO' ? 'Creando el remito y subiendo el archivo…' : 'Creando la factura y subiendo el PDF…',
+      })
       const resultado =
         tipo === 'REMITO'
           ? await crearRemito({ persona: persona!, destino: destino!, formato: formato!, archivo: listo })
           : await crearFactura(listo)
-      const columna = tipo === 'REMITO' ? columnaArchivoRemito(formato!) : COL_FACTURA.archivo
-      setEnvio({ fase: 'terminado', tipo, resultado, columna, archivo: listo })
+      cerrarResultado(resultado, tipo, listo, formato)
     } catch (e: unknown) {
+      // Falló antes de crear el item: no quedó nada en monday y se puede volver a intentar.
       setEnvio({ fase: 'error', mensaje: e instanceof Error ? e.message : String(e) })
     }
   }
 
+  /** Retoma un alta cortada desde la etapa que faltó, sobre el MISMO item. */
   const reintentar = async () => {
-    if (envio.fase !== 'terminado') return
-    const { resultado, columna, archivo: f, tipo: t } = envio
-    setEnvio({ fase: 'enviando', etapa: 'Subiendo el archivo de nuevo…' })
-    const r = await reintentarArchivo(resultado.itemId, columna, f)
-    setEnvio({ fase: 'terminado', tipo: t, resultado: r, columna, archivo: f })
+    if (envio.fase !== 'incompleto') return
+    const { resultado, archivo: f, tipo: t, formato: fmt } = envio
+    setEnvio({ ...envio, reintentando: true })
+    const r =
+      t === 'FACTURA'
+        ? await completarFactura(resultado.itemId, f, resultado.archivoSubido)
+        : await subirArchivoRemito(resultado.itemId, fmt!, f)
+    cerrarResultado(r, t, f, fmt)
   }
 
-  if (envio.fase === 'terminado') {
+  if (envio.fase === 'terminado' || envio.fase === 'incompleto') {
     const { resultado, tipo: t } = envio
     const tablero = t === 'REMITO' ? TABLERO_REMITOS : TABLERO_FACTURAS
-    const ok = !resultado.errorArchivo
+    const ok = envio.fase === 'terminado'
+    const reintentando = envio.fase === 'incompleto' && envio.reintentando
+    const nombre = t === 'REMITO' ? 'remito' : 'factura'
+
+    const otro = () => {
+      if (!ok && !window.confirm(`${t === 'REMITO' ? 'El remito' : 'La factura'} quedó sin terminar. ¿Registrar otro igual?`)) return
+      reiniciar()
+    }
+
     return (
       <div className="app">
         {cabecera(null)}
         <main className="scroll">
-          <div className="view">
-            <div className={`card ${ok ? 'card--summary' : 'card--data'}`}>
-              <div className="ctitle">
-                <i
-                  className={`fas fa-${ok ? 'circle-check' : 'triangle-exclamation'}`}
-                  style={{ color: ok ? '#00874d' : '#b25e09' }}
-                  aria-hidden
-                />
-                {t === 'REMITO' ? 'Remito registrado' : 'Factura registrada'}
-                {!ok && ' sin el archivo'}
-              </div>
-              <div className="csub">
-                {ok
-                  ? `Se creó el item con el archivo "${envio.archivo.name}" adjunto.`
-                  : `El item se creó, pero el archivo no se pudo subir: ${resultado.errorArchivo}`}
-              </div>
-              <div className="acciones-bloque">
-                {!ok && (
-                  <button type="button" className="btn btn-primary" onClick={reintentar}>
-                    <i className="fas fa-rotate-right" aria-hidden /> Reintentar subir el archivo
+          <div className="view comprobante">
+            {ok ? (
+              <div className={`exito exito--${nombre}`} role="status">
+                <span className="exito-ic">
+                  <i className="fas fa-circle-check" aria-hidden />
+                </span>
+                <h2 className="exito-tit">
+                  {t === 'REMITO' ? '¡REMITO cargado con éxito!' : '¡FACTURA cargada con éxito!'}
+                </h2>
+                <p className="exito-txt">
+                  {t === 'REMITO'
+                    ? `Se creó el remito con el archivo "${envio.archivo.name}".`
+                    : `Se creó la factura con el PDF "${envio.archivo.name}" y quedó marcada como MANUAL.`}
+                </p>
+                <div className="acciones-bloque exito-acciones">
+                  <button type="button" className="btn btn-primary" onClick={otro}>
+                    <i className="fas fa-plus" aria-hidden /> Registrar otro
                   </button>
-                )}
-                <button type="button" className={`btn ${ok ? 'btn-primary' : 'btn-out'}`} onClick={reiniciar}>
-                  <i className="fas fa-plus" aria-hidden /> Registrar otro
-                </button>
-                <a
-                  className="btn btn-out"
-                  href={`https://belauzaransa.monday.com/boards/${tablero}/pulses/${resultado.itemId}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <i className="fas fa-arrow-up-right-from-square" aria-hidden /> Ver en monday
-                </a>
+                  <a
+                    className="btn btn-out"
+                    href={`https://belauzaransa.monday.com/boards/${tablero}/pulses/${resultado.itemId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <i className="fas fa-arrow-up-right-from-square" aria-hidden /> Ver en monday
+                  </a>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="card card--data">
+                <div className="ctitle">
+                  <i className="fas fa-triangle-exclamation" style={{ color: '#b25e09' }} aria-hidden />
+                  {t === 'REMITO' ? 'El remito' : 'La factura'} todavía no terminó de cargarse
+                </div>
+                <div className="csub">
+                  {resultado.error}
+                  {t === 'FACTURA' && !resultado.archivoSubido && (
+                    <> Mientras no esté el PDF, la factura NO se marca como MANUAL.</>
+                  )}
+                </div>
+                <div className="aviso aviso--warn" style={{ marginBottom: 14 }}>
+                  <i className="fas fa-hand" aria-hidden />
+                  <span>
+                    No cierres la app: reintentá hasta que diga que se cargó con éxito. Se completa el
+                    mismo item, no se crea otro.
+                  </span>
+                </div>
+                <div className="acciones-bloque">
+                  <button type="button" className="btn btn-green" onClick={reintentar} disabled={reintentando}>
+                    {reintentando ? (
+                      <>
+                        <i className="fas fa-circle-notch fa-spin" aria-hidden /> Reintentando…
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-rotate-right" aria-hidden />{' '}
+                        {resultado.archivoSubido ? 'Reintentar marcar MANUAL' : 'Reintentar subir el archivo'}
+                      </>
+                    )}
+                  </button>
+                  <button type="button" className="btn btn-out" onClick={otro} disabled={reintentando}>
+                    Registrar otro
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -500,6 +592,15 @@ export function FlujoComprobante({ cabecera }: Props) {
                     <li key={f}>{f}</li>
                   ))}
                 </ul>
+              </span>
+            </div>
+          )}
+
+          {enviando && (
+            <div className="aviso aviso--warn" style={{ marginTop: 12 }}>
+              <i className="fas fa-hourglass-half" aria-hidden />
+              <span>
+                <strong>No cierres la app</strong> hasta que aparezca el aviso de que se cargó con éxito.
               </span>
             </div>
           )}

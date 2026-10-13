@@ -47,6 +47,8 @@ type EstadoEmision =
 
 export function App() {
   const [operacion, setOperacion] = useState<Operacion>('ORDEN_DE_TRABAJO')
+  /** Mensaje de la operación que tiene algo a medio cargar en monday; `null` si no hay nada. */
+  const [pendiente, setPendiente] = useState<string | null>(null)
   const [carga, setCarga] = useState<EstadoCarga>({ fase: 'cargando' })
   const [borrador, setBorrador] = useState<BorradorOrden>(borradorInicial)
   const [paso, setPaso] = useState(0)
@@ -195,7 +197,10 @@ export function App() {
                 // Volver a tocar la operación elegida la "deselecciona": ahí se queda donde está.
                 onCambio={(id) => {
                   const elegida = OPERACIONES.find((o) => o.id === id)
-                  if (elegida) setOperacion(elegida.id)
+                  if (!elegida || elegida.id === operacion) return
+                  // Cambiar de operación desarma la pantalla actual: si quedó algo a medias, se pregunta.
+                  if (pendiente && !window.confirm(`${pendiente} ¿Cambiar de operación igual?`)) return
+                  setOperacion(elegida.id)
                 }}
                 placeholder="Elegí la operación…"
                 umbralBusqueda={99}
@@ -266,7 +271,7 @@ export function App() {
   }
 
   if (operacion === 'REMITO_FACTURA') {
-    return <FlujoComprobante cabecera={armarCabecera} />
+    return <FlujoComprobante cabecera={armarCabecera} onPendiente={setPendiente} />
   }
 
   /* Emisión terminada. Se detalla orden por orden en vez de dar un "listo" global: como los

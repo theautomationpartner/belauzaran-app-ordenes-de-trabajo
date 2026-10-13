@@ -352,3 +352,53 @@
     flex: 1;
   }
 }
+
+/* ===== Éxito ===== */
+.exito {
+  --op: #0073ea;
+  --op-suave: #eaf2fd;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 20px 28px;
+  border: 2px solid var(--op);
+  border-radius: 14px;
+  background: var(--op-suave);
+  text-align: center;
+}
+.exito--factura {
+  --op: #2f6f4e;
+  --op-suave: #eaf4ee;
+}
+.exito-ic {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--op);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--op) 35%, transparent);
+}
+.exito-tit {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--op);
+}
+.exito-txt {
+  font-size: 14px;
+  color: var(--text-dark);
+  max-width: 520px;
+  overflow-wrap: anywhere;
+}
+.exito-acciones {
+  justify-content: center;
+}
+@media (max-width: 460px) {
+  .exito-acciones .btn {
+    width: 100%;
+  }
+}

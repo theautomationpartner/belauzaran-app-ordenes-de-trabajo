@@ -53,12 +53,21 @@ export async function traerDatosRemito(): Promise<DatosRemito> {
   return { personas, destinos }
 }
 
-/** Resultado de un alta: el item puede quedar creado aunque el archivo no haya subido. */
+/**
+ * Estado de un alta. El proceso tiene etapas —crear el item, subir el archivo y, en la factura,
+ * marcarla MANUAL— y puede cortarse en cualquiera: `archivoSubido` y `completo` dicen hasta dónde
+ * llegó, para retomar desde ahí sin crear otro item.
+ */
 export interface ResultadoAlta {
   itemId: string
-  /** Mensaje si el archivo no subió; el item igual existe y se puede reintentar. */
-  errorArchivo: string | null
+  archivoSubido: boolean
+  /** Todas las etapas terminaron: recién ahí se avisa que se cargó con éxito. */
+  completo: boolean
+  /** Motivo del corte, si lo hubo. */
+  error: string | null
 }
+
+const mensaje = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 async function crearItem(boardId: string, nombre: string, columnas: Record<string, unknown>) {
   const data = await mondayApi<{ create_item: { id: string } | null }>(
@@ -71,21 +80,6 @@ async function crearItem(boardId: string, nombre: string, columnas: Record<strin
   if (!id) throw new Error('monday no devolvió el id del item creado.')
   return id
 }
-
-/**
- * Sube el archivo de un item recién creado. Si falla no se borra el item: queda con sus datos y el
- * archivo se puede reintentar desde la pantalla de resultado (`reintentarArchivo`).
- */
-async function adjuntar(itemId: string, columnaId: string, archivo: File): Promise<ResultadoAlta> {
-  try {
-    await subirArchivo(itemId, columnaId, archivo)
-    return { itemId, errorArchivo: null }
-  } catch (e: unknown) {
-    return { itemId, errorArchivo: e instanceof Error ? e.message : String(e) }
-  }
-}
-
-export const reintentarArchivo = adjuntar
 
 const hoy = () => new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
@@ -100,6 +94,20 @@ export interface AltaRemito {
 export const columnaArchivoRemito = (formato: 'PDF' | 'JPEG'): string =>
   formato === 'PDF' ? COL_REMITO.archivoPdf : COL_REMITO.archivoJpeg
 
+/**
+ * Sube el archivo del remito. La automatización del tablero procesa el remito al crearse (si ya
+ * tiene archivo) o cuando la columna del archivo cambia, así que un remito creado sin archivo no
+ * dispara nada a medias: reintentar la subida alcanza.
+ */
+export async function subirArchivoRemito(itemId: string, formato: 'PDF' | 'JPEG', archivo: File): Promise<ResultadoAlta> {
+  try {
+    await subirArchivo(itemId, columnaArchivoRemito(formato), archivo)
+    return { itemId, archivoSubido: true, completo: true, error: null }
+  } catch (e: unknown) {
+    return { itemId, archivoSubido: false, completo: false, error: mensaje(e) }
+  }
+}
+
 /** Crea el remito con persona, destino y formato, y le sube el archivo a la columna que toca. */
 export async function crearRemito(alta: AltaRemito): Promise<ResultadoAlta> {
   const itemId = await crearItem(TABLERO_REMITOS, `Remito ${alta.formato} - ${alta.destino.nombre} - ${hoy()}`, {
@@ -107,13 +115,53 @@ export async function crearRemito(alta: AltaRemito): Promise<ResultadoAlta> {
     [COL_REMITO.destino]: { item_ids: [Number(alta.destino.id)] },
     [COL_REMITO.formato]: { label: alta.formato },
   })
-  return adjuntar(itemId, columnaArchivoRemito(alta.formato), alta.archivo)
+  return subirArchivoRemito(itemId, alta.formato, alta.archivo)
 }
 
-/** Crea la factura con origen MANUAL y le sube el PDF. */
+/**
+ * Termina el alta de una factura a partir de donde haya quedado: sube el PDF si falta y, SÓLO con
+ * el PDF ya en la columna, marca el origen MANUAL.
+ *
+ * El orden importa: el cambio a MANUAL es lo que pone a procesar la factura, y una factura
+ * procesada sin PDF falla. Por eso el item se crea sin estado y MANUAL va al final.
+ */
+export async function completarFactura(
+  itemId: string,
+  archivo: File,
+  archivoSubido: boolean,
+): Promise<ResultadoAlta> {
+  if (!archivoSubido) {
+    try {
+      await subirArchivo(itemId, COL_FACTURA.archivo, archivo)
+    } catch (e: unknown) {
+      return {
+        itemId,
+        archivoSubido: false,
+        completo: false,
+        error: `No se pudo subir el PDF: ${mensaje(e)}`,
+      }
+    }
+  }
+  try {
+    await mondayApi(
+      `mutation ($i: ID!, $c: JSON!) {
+        change_multiple_column_values(board_id: ${TABLERO_FACTURAS}, item_id: $i, column_values: $c) { id }
+      }`,
+      { i: itemId, c: JSON.stringify({ [COL_FACTURA.origen]: { label: FACTURA_ORIGEN_MANUAL } }) },
+    )
+    return { itemId, archivoSubido: true, completo: true, error: null }
+  } catch (e: unknown) {
+    return {
+      itemId,
+      archivoSubido: true,
+      completo: false,
+      error: `El PDF se subió, pero no se pudo marcar como MANUAL: ${mensaje(e)}`,
+    }
+  }
+}
+
+/** Crea la factura sin estado y la completa (PDF primero, MANUAL después). */
 export async function crearFactura(archivo: File): Promise<ResultadoAlta> {
-  const itemId = await crearItem(TABLERO_FACTURAS, `Factura - ${archivo.name.replace(/\.pdf$/i, '')}`, {
-    [COL_FACTURA.origen]: { label: FACTURA_ORIGEN_MANUAL },
-  })
-  return adjuntar(itemId, COL_FACTURA.archivo, archivo)
+  const itemId = await crearItem(TABLERO_FACTURAS, `Factura - ${archivo.name.replace(/\.pdf$/i, '')}`, {})
+  return completarFactura(itemId, archivo, false)
 }
