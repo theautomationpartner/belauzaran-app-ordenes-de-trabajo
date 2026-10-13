@@ -18,6 +18,15 @@ export const TABLEROS = {
   /** Subitems de la orden: cada producto usado es uno de estos. */
   productosOT: '18410927290',
   maquinarias: '18410927187',
+  /** 🤖 Orden de Produccion: Cultivo-Lote-Campaña. Una por lote y campaña. */
+  ordenProduccion: '18410927170',
+  /** 🤖 Confirmacion de Trabajo Realizado. */
+  confirmaciones: '18410927173',
+  /**
+   * Movimientos de stock: son SUBITEMS de 🤖 Stock en campo, así que viven en este tablero de
+   * subelementos y no en el del stock. Renombrarlos se hace contra este id.
+   */
+  movimientosStock: '18410927255',
 } as const
 
 /** ✋ Orden de Trabajo (18410927171) — columnas que completa esta app. */
@@ -38,7 +47,51 @@ export const COL_OT = {
    * completa aunque el usuario elija un contacto puntual (ver `crearOrdenes.ts`).
    */
   contactoEspejo: 'lookup_mm3c273r',
+  /** Confirmaciones de trabajo realizado de esta orden (una o más). */
+  confirmaciones: 'board_relation_mm3f3da',
+  /** Hectáreas del lote, espejo de 📍 Lotes. */
+  hectareasEspejo: 'lookup_mm3862q2',
+  /** U$ de la labor: hectáreas × U$/Ha. */
+  usdLabor: 'formula_mm09mxrz',
+  /** U$ total de la orden: labor + productos. */
+  usdTotal: 'formula_mm45te4n',
+  /** Costo por hectárea: (labor + productos) / hectáreas. */
+  usdPorHaTotal: 'formula_mm45hc65',
 } as const
+
+/**
+ * 🤖 Orden de Produccion: Cultivo-Lote-Campaña (18410927170).
+ *
+ * Los montos (`u$ prod`, `Costo u$ x Hct`, `u$ Labor`, `u$ total`) son espejos de fórmulas de la
+ * orden de trabajo y la API los devuelve VACÍOS en cualquier versión: monday no resuelve un espejo
+ * de una fórmula. Por eso la asignación de barbecho los lee directo de cada OT conectada.
+ */
+export const COL_OP = {
+  estado: 'status',
+  campo: 'board_relation_mm0xkka3',
+  lote: 'board_relation_mm31d328',
+  cultivo: 'board_relation_mm0xzwvq',
+  campana: 'board_relation_mm0xj2n8',
+  comienzo: 'date4',
+  ordenesTrabajo: 'board_relation_mm0xxrye',
+  stock: 'board_relation_mm13c2p7',
+} as const
+
+/** Subitems de ✋ Orden de Trabajo: importe de cada producto (cantidad × precio). */
+export const COL_PRODUCTO_OT_USD = 'formula_mm416gx'
+
+/** 🤖 Confirmacion de Trabajo Realizado (18410927173). */
+export const COL_CONFIRMACION = {
+  /** El cultivo va como texto suelto, no como conexión: hay que escribirlo con el nombre. */
+  cultivo: 'text_mm3acymf',
+} as const
+
+/**
+ * Nombre del cultivo que marca a una orden de producción "sin cultivo asignado todavía". La
+ * operación de asignación busca este item en 🌻🌱 Cultivo por nombre, no por id, para que siga
+ * funcionando si algún día lo recrean.
+ */
+export const CULTIVO_BARBECHO = 'Barbecho'
 
 /**
  * Estados de envío con los que la app puede crear una orden (`color_mm0xaytt`).

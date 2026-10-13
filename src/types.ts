@@ -4,8 +4,8 @@
  * `column_values` crudos, así que ningún componente parsea JSON de Monday.
  */
 
-/** Operación elegida en la barra superior. Por ahora la app resuelve una sola. */
-export type Operacion = 'ORDEN_DE_TRABAJO'
+/** Operación elegida en la barra superior. */
+export type Operacion = 'ORDEN_DE_TRABAJO' | 'ASIGNACION_BARBECHO'
 
 /** Item genérico de un tablero maestro: lo mínimo para poblar un selector. */
 export interface ItemBasico {
@@ -256,4 +256,102 @@ export interface TotalesCarga {
   labor: number | null
   productos: number | null
   general: number | null
+}
+
+/* ===== Asignación de barbecho ===== */
+
+/** Item conectado que la asignación sólo renombra. */
+export interface ItemVinculado {
+  id: string
+  nombre: string
+}
+
+/** 🤖 Confirmacion de Trabajo Realizado conectada a una orden de trabajo. */
+export interface ConfirmacionVinculada extends ItemVinculado {
+  /** Cultivo tal como está escrito en `text_mm3acymf` (no es una conexión). */
+  cultivo: string
+}
+
+/**
+ * ✋ Orden de Trabajo conectada a una orden de producción. Los nombres de labor, proveedor, lote,
+ * cultivo y campaña son los que muestran sus conexiones: sirven para rearmar el nombre si el
+ * actual no sigue la convención.
+ */
+export interface OrdenTrabajoVinculada extends ItemVinculado {
+  labor: string
+  proveedor: string
+  lote: string
+  cultivo: string
+  campana: string
+  hectareas: number | null
+  usdLabor: number | null
+  /** Suma de los importes de sus productos (subelementos). */
+  usdProductos: number | null
+  usdTotal: number | null
+  usdPorHa: number | null
+  estadoEnvio: string
+  confirmaciones: ConfirmacionVinculada[]
+}
+
+/** 🤖 Orden de Produccion: Cultivo-Lote-Campaña. */
+export interface OrdenProduccion extends ItemBasico {
+  estado: string
+  campo: string
+  lote: string
+  campana: string
+  cultivo: string
+  /** Fecha de comienzo (`date4`) en formato ISO `AAAA-MM-DD`, o `null` si está vacía. */
+  comienzo: string | null
+  ordenesTrabajo: OrdenTrabajoVinculada[]
+  /** Movimientos de 🤖 Stock en campo conectados (subelementos del stock). */
+  stock: ItemVinculado[]
+}
+
+/**
+ * Cómo se resolvió el nombre nuevo de un item:
+ * - `cultivo`: se reemplazó el cultivo dentro del nombre actual, sin tocar el resto.
+ * - `columnas`: el nombre actual no tenía el cultivo y se rearmó desde las conexiones del item.
+ * - `igual`: el nombre ya tenía el cultivo nuevo (una asignación anterior que quedó a medias).
+ * - `no-reconocido`: no se encontró el cultivo y no hay cómo rearmarlo; el nombre queda como está.
+ */
+export type ViaCambio = 'cultivo' | 'columnas' | 'igual' | 'no-reconocido'
+
+/** Renombre de un item, con el nombre nuevo partido para poder resaltar el cultivo. */
+export interface CambioNombre {
+  itemId: string
+  anterior: string
+  nuevo: string
+  via: ViaCambio
+  /** `[antes, cultivo, después]` del nombre nuevo. `null` si no se pudo ubicar el cultivo. */
+  partes: [string, string, string] | null
+}
+
+/** Todo lo que se va a escribir en Monday para una orden de producción. */
+export interface PlanAsignacion {
+  op: OrdenProduccion
+  cultivo: ItemBasico
+  nombreOp: CambioNombre
+  ordenesTrabajo: CambioNombre[]
+  confirmaciones: CambioNombre[]
+  stock: CambioNombre[]
+}
+
+/** Resultado de aplicar el plan de una orden de producción. */
+export interface ResultadoAsignacion {
+  plan: PlanAsignacion
+  /** Items efectivamente escritos, por tablero. */
+  ordenesTrabajo: number
+  confirmaciones: number
+  stock: number
+  /** La orden de producción quedó con el cultivo nuevo. */
+  opActualizada: boolean
+  error: string | null
+}
+
+/** Cuántos items toca una tanda de asignaciones, por tablero. */
+export interface TotalesAsignacion {
+  ordenesProduccion: number
+  ordenesTrabajo: number
+  confirmaciones: number
+  stock: number
 }

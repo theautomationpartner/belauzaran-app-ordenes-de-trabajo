@@ -13,6 +13,11 @@ export interface ColumnaCruda {
    * `... on BoardRelationValue`. Ver `idsConectados` para por qué es la única lectura confiable.
    */
   linked_item_ids?: string[] | null
+  /**
+   * Texto que muestra monday en conexiones, fórmulas y espejos, pedido con los fragmentos
+   * `... on BoardRelationValue` / `... on FormulaValue`. En esos tipos `text` vuelve vacío.
+   */
+  display_value?: string | null
 }
 
 /** Indexa las columnas de un item por id, para leerlas sin recorrer el arreglo cada vez. */
@@ -71,5 +76,25 @@ export function numero(cols: Map<string, ColumnaCruda>, id: string): number | nu
   const t = texto(cols, id)
   if (!t) return null
   const n = Number(t.replace(',', '.'))
+  return Number.isFinite(n) ? n : null
+}
+
+/**
+ * Texto visible de una conexión o una fórmula. Se lee de `display_value` porque en esas columnas
+ * `text` vuelve vacío; para el resto de los tipos cae en `text`.
+ */
+export function mostrado(cols: Map<string, ColumnaCruda>, id: string): string {
+  const c = cols.get(id)
+  return (c?.display_value ?? c?.text ?? '').trim()
+}
+
+/**
+ * Número de una fórmula o un espejo. monday lo devuelve como texto plano con punto decimal
+ * (`"1574.3"`); `null` si está vacío o no es un número.
+ */
+export function numeroMostrado(cols: Map<string, ColumnaCruda>, id: string): number | null {
+  const t = mostrado(cols, id).replace(/[\s$]/g, '')
+  if (!t) return null
+  const n = Number(t)
   return Number.isFinite(n) ? n : null
 }

@@ -6,6 +6,7 @@ import '@/styles/base.css'
 import '@/styles/layout.css'
 import '@/styles/components.css'
 import '@/styles/orden.css'
+import '@/styles/barbecho.css'
 
 const container = document.getElementById('root')
 if (!container) throw new Error('No se encontró el nodo #root')

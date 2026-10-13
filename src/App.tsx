@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { AvanceEmision, BorradorOrden, Catalogos, ResultadoOrden } from '@/types'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import type { AvanceEmision, BorradorOrden, Catalogos, Operacion, ResultadoOrden } from '@/types'
 import { LogoEmpresa } from '@/components/ui/LogoEmpresa'
 import { Stepper } from '@/components/ui/Stepper'
 import { SelectorBuscable } from '@/components/ui/SelectorBuscable'
@@ -7,6 +7,7 @@ import { Paso1Datos } from '@/features/orden/Paso1Datos'
 import { Paso2Productos } from '@/features/orden/Paso2Productos'
 import { Paso3Campos } from '@/features/orden/Paso3Campos'
 import { Paso4Emision } from '@/features/orden/Paso4Emision'
+import { FlujoBarbecho } from '@/features/barbecho/FlujoBarbecho'
 import { traerCatalogos } from '@/services/monday/catalogos'
 import { SinAcceso, mondayHabilitado } from '@/services/monday/sdk'
 import { obtenerDatosSesion } from '@/services/monday/sesion'
@@ -23,8 +24,11 @@ import {
 
 const PASOS = ['Datos de la orden', 'Productos', 'Campos y lotes', 'Revisar y emitir'] as const
 
-/** Única operación que resuelve la app hoy; el selector queda listo para sumar más. */
-const OPERACIONES = [{ id: 'ORDEN_DE_TRABAJO', nombre: 'Cargar Orden de Trabajo' }]
+/** Operaciones que resuelve la app. Cada una tiene su propio flujo y sus propias etapas. */
+const OPERACIONES: { id: Operacion; nombre: string }[] = [
+  { id: 'ORDEN_DE_TRABAJO', nombre: 'Cargar Orden de Trabajo' },
+  { id: 'ASIGNACION_BARBECHO', nombre: 'Asignación de Barbecho' },
+]
 
 type EstadoCarga =
   | { fase: 'cargando' }
@@ -40,7 +44,7 @@ type EstadoEmision =
   | { fase: 'error'; mensaje: string }
 
 export function App() {
-  const [operacion, setOperacion] = useState<string | null>('ORDEN_DE_TRABAJO')
+  const [operacion, setOperacion] = useState<Operacion>('ORDEN_DE_TRABAJO')
   const [carga, setCarga] = useState<EstadoCarga>({ fase: 'cargando' })
   const [borrador, setBorrador] = useState<BorradorOrden>(borradorInicial)
   const [paso, setPaso] = useState(0)
@@ -170,7 +174,9 @@ export function App() {
     setMostrarFaltantes(false)
   }
 
-  const cabecera = (
+  /* La cabecera es común a todas las operaciones; lo que cambia son las etapas, que cada flujo
+     pasa como `pasos`. */
+  const armarCabecera = (pasos: ReactNode) => (
     <header className="topbar">
       <div className="topbar-in">
         {/* La marca abre la barra, a la izquierda del selector de operación. */}
@@ -184,20 +190,24 @@ export function App() {
               <SelectorBuscable
                 opciones={OPERACIONES}
                 valor={operacion}
-                onCambio={(id) => setOperacion(id ?? 'ORDEN_DE_TRABAJO')}
+                // Volver a tocar la operación elegida la "deselecciona": ahí se queda donde está.
+                onCambio={(id) => {
+                  const elegida = OPERACIONES.find((o) => o.id === id)
+                  if (elegida) setOperacion(elegida.id)
+                }}
                 placeholder="Elegí la operación…"
                 umbralBusqueda={99}
               />
             </div>
           </div>
         </div>
-        {catalogos && (
-          <div className="topbar-steps">
-            <Stepper pasos={PASOS} actual={paso} maxAlcanzado={maxAlcanzado} onPaso={irA} />
-          </div>
-        )}
+        {pasos && <div className="topbar-steps">{pasos}</div>}
       </div>
     </header>
+  )
+
+  const cabecera = armarCabecera(
+    catalogos && <Stepper pasos={PASOS} actual={paso} maxAlcanzado={maxAlcanzado} onPaso={irA} />,
   )
 
   /* Sin sesión de monday no se muestra nada de la app: ni la barra de operación ni los pasos.
@@ -246,6 +256,11 @@ export function App() {
         </div>
       </div>
     )
+  }
+
+  /* La asignación de barbecho usa los mismos catálogos (los cultivos) y trae aparte lo suyo. */
+  if (operacion === 'ASIGNACION_BARBECHO') {
+    return <FlujoBarbecho cultivos={carga.catalogos.cultivos} cabecera={armarCabecera} />
   }
 
   /* Emisión terminada. Se detalla orden por orden en vez de dar un "listo" global: como los

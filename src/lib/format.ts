@@ -9,6 +9,16 @@ export const usd = (n: number | null | undefined): string =>
 export const hectareas = (n: number | null | undefined): string =>
   n == null || !Number.isFinite(n) ? '—' : `${NUM0.format(n)} ha`
 
+/** Fecha ISO de monday (`2026-06-08`) en formato local (`08/06/2026`). */
+export const fecha = (iso: string | null | undefined): string => {
+  const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : '—'
+}
+
+/** Plural simple: `plural(3, 'orden', 'órdenes')` → "3 órdenes". */
+export const plural = (n: number, uno: string, varios: string): string =>
+  `${n} ${n === 1 ? uno : varios}`
+
 /**
  * Cantidad de producto con su unidad (litros, kilos, plantas…). La unidad va al lado del número
  * porque una dosis sin unidad no se puede interpretar: "2,5" es medio bidón o dos bolsas y media.

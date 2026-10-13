@@ -33,7 +33,7 @@ import {
 } from './columns'
 import { etiquetas, idsConectados, numero, porId, texto, type ColumnaCruda } from './parse'
 
-interface ItemCrudo {
+export interface ItemCrudo {
   id: string
   name: string
   column_values?: ColumnaCruda[] | null
@@ -62,7 +62,7 @@ const CAMPOS_COLUMNA = 'id text value ... on BoardRelationValue { linked_item_id
  * ninguno de estos tableros llega, pero el bucle evita que la app se rompa en silencio el día
  * que Campos o Proveedores crezcan.
  */
-async function traerItems(
+export async function traerItems(
   boardId: string,
   seleccion: string,
   limite = 200,

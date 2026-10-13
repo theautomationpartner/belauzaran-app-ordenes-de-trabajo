@@ -1,0 +1,368 @@
+/*
+ * Asignación de barbecho: lista de órdenes de producción a marcar (paso 1) y revisión de los
+ * renombres (paso 2). Usa los mismos tokens que la carga de órdenes de trabajo.
+ */
+
+/* ===== Filtros ===== */
+.filtros-op {
+  display: grid;
+  grid-template-columns: minmax(240px, 2fr) minmax(180px, 1fr) minmax(180px, 1fr);
+  gap: 14px;
+}
+/* Mismo alto que los selectores de al lado. */
+.filtros-op .buscador-campo input {
+  height: 44px;
+}
+@media (max-width: 720px) {
+  .filtros-op {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Barra de selección ===== */
+.barra-seleccion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: 1px solid var(--tint-neutral-bd);
+  border-radius: 10px;
+  background: var(--tint-neutral);
+}
+.barra-seleccion--activa {
+  border-color: var(--campo-bd);
+  background: var(--campo-soft);
+}
+.barra-seleccion-txt {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 13.5px;
+}
+.barra-seleccion-falta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  color: #b25e09;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+.barra-seleccion-acciones {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.barra-seleccion-cultivo {
+  width: 300px;
+  max-width: 100%;
+}
+@media (max-width: 720px) {
+  .barra-seleccion-acciones,
+  .barra-seleccion-cultivo {
+    width: 100%;
+  }
+}
+
+/* ===== Tarjeta de orden de producción ===== */
+.op-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.op-card {
+  border: 1px solid var(--tint-neutral-bd);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+/* Marcada: filete verde de campo y la franja del título teñida apenas. */
+.op-card--marcada {
+  border-color: var(--campo);
+  box-shadow: 0 0 0 1px var(--campo);
+}
+.op-card--marcada .op-head {
+  background: var(--campo-soft);
+}
+/* Marcada pero sin cultivo: ámbar, para que se encuentre rápido en la lista. */
+.op-card--pendiente {
+  border-color: #f79009;
+  box-shadow: 0 0 0 1px #f79009;
+}
+.op-card--pendiente .op-head {
+  background: #fffaeb;
+}
+.op-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #eef0f4;
+  border-radius: 10px 10px 0 0;
+}
+.op-marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 320px;
+  min-width: 0;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-dark);
+}
+.op-check {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #fff;
+  transition: 0.12s;
+}
+.op-marca:hover .op-check {
+  border-color: var(--campo);
+}
+.op-card--marcada .op-check {
+  background: var(--campo);
+  border-color: var(--campo);
+}
+.op-titulo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.op-nombre {
+  font-size: 14.5px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.op-sub {
+  font-size: 12px;
+  color: var(--text-gray);
+}
+.op-cultivo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
+}
+.op-flecha {
+  color: var(--text-gray);
+  font-size: 12px;
+}
+.op-cultivo-sel {
+  width: 230px;
+}
+.op-cultivo-vacio {
+  font-size: 12px;
+  color: #98a2b3;
+  font-style: italic;
+}
+.op-body {
+  padding: 12px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.op-datos {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px 18px;
+}
+.op-total {
+  color: var(--green-dark);
+}
+.op-tabla td {
+  vertical-align: top;
+}
+.op-ot-nom {
+  display: block;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.op-tabla .xs {
+  display: block;
+  margin-top: 2px;
+}
+.op-sin-ot {
+  font-size: 12.5px;
+  color: var(--text-gray);
+}
+.op-pie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  padding-top: 10px;
+  border-top: 1px solid #eef0f4;
+}
+.op-cuenta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-gray);
+}
+.op-cuenta i {
+  color: var(--campo);
+}
+@media (max-width: 720px) {
+  .op-cultivo {
+    width: 100%;
+  }
+  .op-cultivo-sel {
+    flex: 1;
+    width: auto;
+  }
+}
+
+/* ===== Revisión de cambios ===== */
+.plan-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.plan-card {
+  border: 1px solid var(--tint-summary-bd);
+  border-radius: 10px;
+  background: #fff;
+}
+.plan-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--tint-summary-bd);
+}
+.plan-nombre {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+.plan-cambio {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-gray);
+  font-size: 12px;
+}
+.plan-body {
+  padding: 4px 14px 10px;
+}
+.grupo {
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f2f5;
+}
+.grupo:last-child {
+  border-bottom: none;
+}
+.grupo-tit {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-gray);
+  margin-bottom: 6px;
+}
+.grupo-tit > i:first-child {
+  color: var(--campo);
+}
+summary.grupo-tit {
+  cursor: pointer;
+  list-style: none;
+  margin-bottom: 0;
+}
+summary.grupo-tit::-webkit-details-marker {
+  display: none;
+}
+details[open] > summary.grupo-tit {
+  margin-bottom: 6px;
+}
+.grupo-caret {
+  margin-left: auto;
+  font-size: 11px;
+  transition: transform 0.15s;
+}
+details[open] .grupo-caret {
+  transform: rotate(180deg);
+}
+.grupo-cuenta {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--campo-soft);
+  color: var(--campo);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+.grupo-nota {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  color: var(--text-gray);
+}
+.grupo-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cambio {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--tint-neutral);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.cambio-viejo {
+  color: #98a2b3;
+  font-size: 12px;
+}
+.cambio-viejo s {
+  color: var(--red-dark);
+}
+.cambio-nuevo {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+.cambio-nuevo i {
+  color: var(--campo);
+  font-size: 11px;
+  margin-right: 6px;
+}
+.cambio-nuevo mark {
+  background: var(--campo-soft);
+  color: var(--campo);
+  font-weight: 800;
+  border-radius: 3px;
+  padding: 0 3px;
+}
+.cambio-aviso {
+  align-self: flex-start;
+  margin-top: 4px;
+}

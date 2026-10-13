@@ -1,7 +1,11 @@
-# Belaunzaran SA · Cargar Orden de Trabajo
+# Belaunzaran SA · Operaciones
 
-App de tablero (board view) para Monday, en React + Vite. Reemplaza la carga por formulario de las
-órdenes de trabajo por un flujo guiado en tres pasos.
+App de tablero (board view) para Monday, en React + Vite. La barra superior elige la operación:
+
+- **Cargar Orden de Trabajo** — reemplaza la carga por formulario de las órdenes de trabajo por un
+  flujo guiado.
+- **Asignación de Barbecho** — a las órdenes de producción en barbecho les asigna el cultivo que se
+  va a sembrar y propaga el cambio (ver [más abajo](#asignación-de-barbecho)).
 
 ## Puesta en marcha
 
@@ -175,3 +179,43 @@ que aceptar cualquiera no abre ninguna puerta. Los dos están en el Developer Ce
 En localhost no hay monday que entregue un token, así que la verificación no corre: el proxy de
 Vite pega directo contra la API con `VITE_MONDAY_TOKEN`. La capa de seguridad aplica al deploy,
 que es el único expuesto.
+
+## Asignación de Barbecho
+
+Lista las órdenes de 🤖 Orden de Produccion (`18410927170`) cuyo cultivo (`board_relation_mm0xzwvq`)
+es **Barbecho**, con su campo, lote, campaña, fecha de comienzo y los montos de sus órdenes de
+trabajo. Se marcan una o varias y se les elige el cultivo: a todas juntas desde la barra de
+selección, o uno distinto en cada tarjeta. Antes de escribir nada se muestra cada nombre como queda.
+
+### Qué escribe
+
+| Tablero | Qué cambia |
+| --- | --- |
+| 🤖 Orden de Produccion | Nombre + `board_relation_mm0xzwvq` (cultivo) |
+| ✋ Orden de Trabajo (las de `board_relation_mm0xxrye`) | Nombre + `board_relation_mm38x2ka` (cultivo) |
+| 🤖 Confirmacion de Trabajo (las de `board_relation_mm3f3da` de cada OT) | Nombre + `text_mm3acymf` (cultivo como texto) |
+| Movimientos de stock (`18410927255`, los de `board_relation_mm13c2p7`) | Sólo el nombre |
+
+Primero se escribe todo lo que cuelga de la orden de producción y **la OP va última**: si algo
+falla, la OP sigue en barbecho, vuelve a aparecer en la lista y se puede reintentar. Las
+escrituras se pueden repetir sin efecto, así que reintentar no duplica nada.
+
+### Cómo se arma el nombre nuevo
+
+En los cuatro tableros el cultivo va justo antes de la campaña
+(`LA BERNARDA-LOTE 3-Barbecho-2026-2027`). La app **reemplaza sólo ese tramo** y deja el resto del
+nombre como está, incluido el `ANULAR - ` de los movimientos de stock.
+
+No se rearma el nombre desde las columnas porque hay órdenes cuyo nombre ya no coincide con sus
+conexiones (un lote renombrado en Campos, un proveedor cambiado a mano): rearmarlas les cambiaría
+más que el cultivo, y los movimientos de stock —que copian el nombre de la OT— dejarían de
+coincidir con ella. El rearmado (`Lote-Cultivo-Campaña`, `Labor-Proveedor-Lote-Cultivo-Campaña`,
+`Labor-Lote-Cultivo-Campaña`) queda sólo como respaldo cuando el nombre no contiene el cultivo, y la
+revisión lo marca.
+
+### Montos
+
+Los montos de la OP (`lookup_mm461ecy`, `lookup_mm46fbqv`, `lookup_mm456wg0`, `lookup_mm46z96c`)
+son espejos de fórmulas de la OT, y **la API los devuelve vacíos**. La app los lee de cada OT:
+U$ Labor `formula_mm09mxrz`, U$ Total `formula_mm45te4n`, Costo x Ha `formula_mm45hc65`, y U$
+Producto como suma de `formula_mm416gx` de sus subelementos.
