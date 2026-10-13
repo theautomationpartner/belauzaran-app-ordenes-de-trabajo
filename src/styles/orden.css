@@ -1154,3 +1154,142 @@
   background: #fffaeb;
   border-bottom-color: #fedf89;
 }
+
+/* ===== Reemplazo por principio activo (paso 2) ===== */
+/* Principio activo debajo del nombre del producto, como dato de referencia. */
+.prod-pa {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--campo);
+  font-weight: 600;
+}
+.reemplazo-celda {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.reemplazo-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: #fff;
+  color: var(--text-gray);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.reemplazo-toggle:hover {
+  border-color: var(--campo);
+}
+.reemplazo-toggle-box {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: #fff;
+  flex: none;
+}
+.reemplazo-toggle--on {
+  border-color: var(--campo-bd);
+  background: var(--campo-soft);
+  color: var(--campo);
+}
+.reemplazo-toggle--on .reemplazo-toggle-box {
+  background: var(--campo);
+  border-color: var(--campo);
+}
+/* Botón con aspecto de enlace: abre la lista de reemplazos sin competir con el casillero. */
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: var(--primary-blue);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+/* ===== Ventana emergente ===== */
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(16, 24, 40, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.modal {
+  width: 100%;
+  max-width: 720px;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 48px rgba(16, 24, 40, 0.28);
+  overflow: hidden;
+}
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid #eef0f4;
+}
+.modal-tit-bloque {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.modal-tit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 800;
+}
+.modal-sub {
+  font-size: 13px;
+  color: var(--text-gray);
+  line-height: 1.6;
+}
+.modal-x {
+  flex: none;
+  font-size: 16px;
+}
+.modal-body {
+  padding: 14px 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.modal-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid #eef0f4;
+  background: var(--tint-neutral);
+}

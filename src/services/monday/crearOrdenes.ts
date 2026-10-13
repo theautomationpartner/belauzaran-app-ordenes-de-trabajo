@@ -10,7 +10,14 @@
 import type { AvanceEmision, CargaAEmitir, OrdenAGenerar, ResultadoOrden } from '@/types'
 import { aTextoMonday } from '@/lib/format'
 import { mondayApi } from './sdk'
-import { COL_OT, COL_PRODUCTO_OT, OT_ESTADO_ENVIO_INICIAL, TABLEROS } from './columns'
+import {
+  COL_OT,
+  COL_PRODUCTO_OT,
+  OT_ESTADO_ENVIO_INICIAL,
+  REEMPLAZO_NO,
+  REEMPLAZO_SI,
+  TABLEROS,
+} from './columns'
 
 /** Valor de una columna `board_relation`. Monday espera los ids de los items conectados. */
 const conexion = (...itemIds: string[]) => ({ item_ids: itemIds.map(Number) })
@@ -119,6 +126,10 @@ async function crearSubitems(itemId: string, orden: OrdenAGenerar): Promise<numb
     const columnas: Record<string, unknown> = {
       [COL_PRODUCTO_OT.producto]: opciones(producto.etiqueta),
       [COL_PRODUCTO_OT.cantPorHa]: aTextoMonday(producto.cantPorHa),
+      // Siempre se escribe: lo que no se permitió explícitamente queda en NO, no vacío.
+      [COL_PRODUCTO_OT.permitirReemplazo]: estado(
+        producto.permitirReemplazo ? REEMPLAZO_SI : REEMPLAZO_NO,
+      ),
     }
     // Las hectáreas del lote son las que multiplican la dosis; si el lote no las tiene cargadas
     // se deja la columna vacía en vez de inventar un cero, que daría un total falso de 0.

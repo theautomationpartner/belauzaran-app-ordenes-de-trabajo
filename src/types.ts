@@ -85,6 +85,8 @@ export interface Producto extends ItemBasico {
    * dropdown del subitem de la orden.
    */
   etiqueta: string
+  /** Etiquetas de 🤚Principio Activo. Vacío si el producto no tiene ninguno cargado. */
+  principiosActivos: string[]
 }
 
 /** 🛠️🚜 Maquinarias, Herramientas y Rodados (18410927187). */
@@ -113,6 +115,7 @@ export interface Catalogos {
    */
   filtros: {
     tiposProducto: string[]
+    principiosActivos: string[]
     tiposMaquinaria: string[]
     clasificacionesMaquinaria: string[]
   }
@@ -127,6 +130,11 @@ export interface LineaProducto {
   uid: string
   productoId: string | null
   cantPorHa: string
+  /**
+   * Si el contratista puede usar otro producto con el mismo principio activo cuando este no
+   * esté. Sólo se ofrece para productos que tienen principio activo; el resto va siempre en NO.
+   */
+  permitirReemplazo: boolean
 }
 
 /** Un bloque "Campo + lotes de ese campo". Se repite tantas veces como haga falta. */
@@ -183,6 +191,9 @@ export interface ProductoDeOrden {
   precioUnitario: number | null
   /** Cantidad total × precio unitario. `null` si falta cualquiera de los dos. */
   totalUsd: number | null
+  principiosActivos: string[]
+  /** Va al subitem como SI / NO en `COL_PRODUCTO_OT.permitirReemplazo`. */
+  permitirReemplazo: boolean
 }
 
 /**

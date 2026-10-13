@@ -1,10 +1,118 @@
-import { useMemo, useState } from 'react'
-import type { BorradorOrden, Catalogos, LineaProducto } from '@/types'
+import { useCallback, useMemo, useState } from 'react'
+import type { BorradorOrden, Catalogos, LineaProducto, Producto } from '@/types'
 import { BuscadorAgregar, type ResultadoBusqueda } from '@/components/ui/BuscadorAgregar'
 import { PasoHeader } from '@/components/ui/PasoHeader'
+import { Modal } from '@/components/ui/Modal'
 import { ResumenOrden } from './ResumenOrden'
-import { buscar, lineasCargadas, nuevoUid } from '@/lib/orden'
+import { buscar, lineasCargadas, nuevoUid, reemplazosDe } from '@/lib/orden'
 import { aNumero, usd } from '@/lib/format'
+
+interface ToggleProps {
+  activo: boolean
+  onAlternar: () => void
+  etiqueta: string
+}
+
+/** Casillero "Permitir reemplazo" de una línea: el mismo en la tabla y en la ventana de reemplazos. */
+function ToggleReemplazo({ activo, onAlternar, etiqueta }: ToggleProps) {
+  return (
+    <button
+      type="button"
+      className={`reemplazo-toggle ${activo ? 'reemplazo-toggle--on' : ''}`}
+      aria-pressed={activo}
+      aria-label={`Permitir reemplazo de ${etiqueta}`}
+      onClick={onAlternar}
+    >
+      <span className="reemplazo-toggle-box">{activo && <i className="fas fa-check" aria-hidden />}</span>
+      {activo ? 'Sí, permitido' : 'Permitir'}
+    </button>
+  )
+}
+
+interface VentanaProps {
+  producto: Producto
+  reemplazos: Producto[]
+  /** Productos que ya están en la orden, para marcarlos en la lista. */
+  enLaOrden: Set<string>
+  permitido: boolean
+  onAlternar: () => void
+  onCerrar: () => void
+}
+
+/**
+ * Lista de equivalentes de un producto: los activos que comparten su principio activo. Es sólo
+ * de consulta; al cerrarla se sigue cargando donde se estaba.
+ */
+function VentanaReemplazos({ producto, reemplazos, enLaOrden, permitido, onAlternar, onCerrar }: VentanaProps) {
+  return (
+    <Modal
+      titulo={
+        <>
+          <i className="fas fa-right-left" style={{ color: 'var(--campo)' }} aria-hidden /> Reemplazos
+          posibles
+        </>
+      }
+      subtitulo={
+        <>
+          <strong>{producto.etiqueta}</strong> · Principio activo:{' '}
+          {producto.principiosActivos.map((pa) => (
+            <span className="chip chip--campo" key={pa} style={{ marginLeft: 4 }}>
+              {pa}
+            </span>
+          ))}
+        </>
+      }
+      onCerrar={onCerrar}
+      pie={<ToggleReemplazo activo={permitido} onAlternar={onAlternar} etiqueta={producto.etiqueta} />}
+    >
+      {reemplazos.length === 0 ? (
+        <p className="muted">No hay otros productos activos con este principio activo.</p>
+      ) : (
+        <div className="tabla-wrap">
+          <div className="tabla-scroll">
+            <table className="tabla tabla--compacta">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Tipo</th>
+                  <th className="num">Precio unitario</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reemplazos.map((r) => (
+                  <tr key={r.id}>
+                    <td data-lbl="Producto">
+                      <span className="font-b">{r.etiqueta}</span>
+                      {/* Un principio activo combinado (o distinto) se aclara: no todo equivalente lo es al 100%. */}
+                      {r.principiosActivos.join() !== producto.principiosActivos.join() && (
+                        <span className="xs" style={{ display: 'block' }}>
+                          {r.principiosActivos.join(' + ')}
+                        </span>
+                      )}
+                      {enLaOrden.has(r.id) && (
+                        <span className="chip chip--violeta" style={{ marginTop: 4 }}>
+                          Ya está en la orden
+                        </span>
+                      )}
+                    </td>
+                    <td data-lbl="Tipo">{r.tipo || '—'}</td>
+                    <td data-lbl="Precio unitario" className="num">
+                      {r.precioUnitario != null ? (
+                        `${usd(r.precioUnitario)} / ${r.unidad || 'unidad'}`
+                      ) : (
+                        <span className="muted">Sin precio</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </Modal>
+  )
+}
 
 interface Props {
   catalogos: Catalogos
@@ -25,6 +133,10 @@ interface Props {
  */
 export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }: Props) {
   const [tipos, setTipos] = useState<string[]>([])
+  const [principios, setPrincipios] = useState<string[]>([])
+  /** Línea cuyos reemplazos se están mirando en la ventana emergente. */
+  const [viendoReemplazos, setViendoReemplazos] = useState<string | null>(null)
+  const cerrarVentana = useCallback(() => setViendoReemplazos(null), [])
 
   /** Universo de búsqueda. Se arma una vez; el buscador decide qué pintar. */
   const universo: ResultadoBusqueda[] = useMemo(
@@ -35,13 +147,15 @@ export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }:
         titulo: p.etiqueta,
         detalle: [
           p.tipo,
+          p.principiosActivos.length > 0 ? `P.A.: ${p.principiosActivos.join(' + ')}` : '',
           p.precioUnitario != null
             ? `${usd(p.precioUnitario)} por ${p.unidad || 'unidad'}`
             : 'Sin precio cargado',
         ]
           .filter(Boolean)
           .join(' · '),
-        chips: [p.tipo].filter(Boolean),
+        // Los filtros miran estas etiquetas: el tipo y los principios activos.
+        chips: [p.tipo, ...p.principiosActivos].filter(Boolean),
       })),
     [catalogos.productos],
   )
@@ -69,10 +183,20 @@ export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }:
           uid: nuevoUid(),
           productoId,
           cantPorHa: sugerida != null ? String(sugerida).replace('.', ',') : '',
+          // Reemplazar es una decisión a conciencia: arranca en NO.
+          permitirReemplazo: false,
         },
       ],
     })
   }
+
+  /* La columna de reemplazo aparece sólo si hay algún producto con principio activo: para el
+     resto no hay equivalente posible y la columna sería ruido. */
+  const conPrincipio = cargadas.some(
+    (l) => (buscar(catalogos.productos, l.productoId)?.principiosActivos.length ?? 0) > 0,
+  )
+  const lineaVentana = borrador.productos.find((l) => l.uid === viendoReemplazos) ?? null
+  const productoVentana = lineaVentana ? buscar(catalogos.productos, lineaVentana.productoId) : null
 
   const quitar = (uid: string) => {
     onCambio({ productos: borrador.productos.filter((l) => l.uid !== uid) })
@@ -95,8 +219,8 @@ export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }:
           <span className="chip chip--opcional">Opcional</span>
         </div>
         <div className="csub">
-          Escribí parte del nombre y tocá Buscar, o filtrá por tipo. Podés agregar varios seguidos
-          sin salir del buscador.
+          Escribí parte del nombre y tocá Buscar, o filtrá por principio activo o por tipo. Podés
+          agregar varios seguidos sin salir del buscador.
         </div>
 
         <BuscadorAgregar
@@ -104,8 +228,15 @@ export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }:
           agregados={agregados}
           onAgregar={agregar}
           placeholder="Ej.: round up, urea, avena…"
-          ayuda={`Hay ${catalogos.productos.length} productos activos. Buscá por nombre o elegí un tipo para ver los que correspondan.`}
+          ayuda={`Hay ${catalogos.productos.length} productos activos. Buscá por nombre, o elegí un tipo o un principio activo para ver los que correspondan.`}
           filtros={[
+            {
+              titulo: 'Principio Activo',
+              opciones: catalogos.filtros.principiosActivos,
+              valores: principios,
+              onCambio: setPrincipios,
+              modo: 'desplegable',
+            },
             {
               titulo: 'Tipo de producto',
               opciones: catalogos.filtros.tiposProducto,
@@ -139,6 +270,7 @@ export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }:
                     <th className="num">Cantidad por hectárea</th>
                     <th className="num">Precio unitario</th>
                     <th className="num">Costo por hectárea</th>
+                    {conPrincipio && <th>Permitir reemplazo</th>}
                     <th aria-label="Acciones" />
                   </tr>
                 </thead>
@@ -155,6 +287,11 @@ export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }:
                       <tr key={linea.uid} className={completa ? '' : 'fila--incompleta'}>
                         <td data-lbl="Producto">
                           <span className="prod-nom">{producto.etiqueta}</span>
+                          {producto.principiosActivos.length > 0 && (
+                            <span className="prod-pa">
+                              P.A.: {producto.principiosActivos.join(' + ')}
+                            </span>
+                          )}
                         </td>
 
                         <td data-lbl="Cantidad por hectárea" className="num">
@@ -192,6 +329,34 @@ export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }:
                           )}
                         </td>
 
+                        {conPrincipio && (
+                          <td data-lbl="Permitir reemplazo">
+                            {producto.principiosActivos.length > 0 ? (
+                              <div className="reemplazo-celda">
+                                <ToggleReemplazo
+                                  activo={linea.permitirReemplazo}
+                                  etiqueta={producto.etiqueta}
+                                  onAlternar={() =>
+                                    actualizarLinea(linea.uid, {
+                                      permitirReemplazo: !linea.permitirReemplazo,
+                                    })
+                                  }
+                                />
+                                <button
+                                  type="button"
+                                  className="btn-link"
+                                  onClick={() => setViendoReemplazos(linea.uid)}
+                                >
+                                  <i className="fas fa-list" aria-hidden /> Ver{' '}
+                                  {reemplazosDe(producto, catalogos.productos).length} reemplazos
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="muted xs">Sin principio activo</span>
+                            )}
+                          </td>
+                        )}
+
                         <td data-lbl="" className="celda-accion">
                           <button
                             type="button"
@@ -210,6 +375,21 @@ export function Paso2Productos({ catalogos, borrador, onCambio, onEditarDatos }:
             </div>
           </div>
         </div>
+      )}
+
+      {lineaVentana && productoVentana && (
+        <VentanaReemplazos
+          producto={productoVentana}
+          reemplazos={reemplazosDe(productoVentana, catalogos.productos)}
+          enLaOrden={agregados}
+          permitido={lineaVentana.permitirReemplazo}
+          onAlternar={() =>
+            actualizarLinea(lineaVentana.uid, {
+              permitirReemplazo: !lineaVentana.permitirReemplazo,
+            })
+          }
+          onCerrar={cerrarVentana}
+        />
       )}
 
       {cargadas.length === 0 && (

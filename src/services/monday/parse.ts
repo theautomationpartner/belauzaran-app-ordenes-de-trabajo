@@ -18,6 +18,8 @@ export interface ColumnaCruda {
    * `... on BoardRelationValue` / `... on FormulaValue`. En esos tipos `text` vuelve vacío.
    */
   display_value?: string | null
+  /** Opciones elegidas de un `dropdown`, pedidas con `... on DropdownValue { values { label } }`. */
+  values?: { label: string }[] | null
 }
 
 /** Indexa las columnas de un item por id, para leerlas sin recorrer el arreglo cada vez. */
@@ -66,6 +68,18 @@ export function idsConectados(cols: Map<string, ColumnaCruda>, id: string): stri
 export function etiquetas(cols: Map<string, ColumnaCruda>, id: string): string[] {
   const t = texto(cols, id)
   return t ? t.split(',').map((s) => s.trim()).filter(Boolean) : []
+}
+
+/**
+ * Etiquetas de un `dropdown` leídas una por una de `values`.
+ *
+ * `etiquetas` parte el `text` por comas, y eso rompe las etiquetas que tienen una coma adentro:
+ * el principio activo "2,4-D" salía como "2" y "4-D". Sin `values` cae en ese método.
+ */
+export function etiquetasDropdown(cols: Map<string, ColumnaCruda>, id: string): string[] {
+  const valores = cols.get(id)?.values
+  if (valores) return valores.map((v) => v.label.trim()).filter(Boolean)
+  return etiquetas(cols, id)
 }
 
 /**

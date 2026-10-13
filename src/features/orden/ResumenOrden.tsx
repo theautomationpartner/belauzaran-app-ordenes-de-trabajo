@@ -35,9 +35,12 @@ export function ResumenOrden({ catalogos, borrador, onEditar }: Props) {
   // y una casilla en "—" haría creer que falta completar algo.
   const productos = lineasCargadas(borrador)
   if (productos.length > 0) {
+    const reemplazables = productos.filter((l) => l.permitirReemplazo).length
     datos.push({
       lbl: 'Productos',
-      val: `${productos.length} insumo${productos.length === 1 ? '' : 's'}`,
+      val:
+        `${productos.length} insumo${productos.length === 1 ? '' : 's'}` +
+        (reemplazables > 0 ? ` · ${reemplazables} con reemplazo` : ''),
     })
   }
 

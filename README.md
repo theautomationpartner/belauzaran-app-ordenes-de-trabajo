@@ -129,6 +129,9 @@ El nombre sigue la convención del tablero: `LABOR-PROVEEDOR-LOTE-CULTIVO-CAMPA�
 | Producto | `dropdown_mm3cg47g` (etiqueta de `dropdown_mm3ca3dn` del producto) |
 | Cantidad por hectárea | `numeric_mm3869nh` |
 | Hectáreas del lote | `numeric_mm3fvr3q` |
+| Permitir reemplazo | `color_mm8332q5` → **SI** si se tildó en el paso 2; **NO** en el resto, incluidos los productos sin principio activo |
+
+En el paso 2 se puede filtrar por **Principio Activo** (`dropdown_mm7z94pj` de Productos, varios a la vez). A los productos que tienen uno se les ofrece **Permitir reemplazo** y la lista de equivalentes: los productos activos que comparten algún principio activo. Las etiquetas se leen de `values` del dropdown y no partiendo el texto, porque "2,4-D" lleva una coma.
 
 ### Números
 

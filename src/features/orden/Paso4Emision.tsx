@@ -66,6 +66,7 @@ function TarjetaOrden({ orden, indice, onAlternarEnvio }: TarjetaProps) {
                   <th className="num">Por ha</th>
                   <th className="num">Total</th>
                   <th className="num">U$S</th>
+                  <th>Reemplazo</th>
                 </tr>
               </thead>
               <tbody>
@@ -80,6 +81,16 @@ function TarjetaOrden({ orden, indice, onAlternarEnvio }: TarjetaProps) {
                     </td>
                     <td data-lbl="U$S" className="num">
                       {usd(p.totalUsd)}
+                    </td>
+                    {/* Lo mismo que queda en "Permitir Reemplazo" del subelemento. */}
+                    <td data-lbl="Reemplazo">
+                      {p.permitirReemplazo ? (
+                        <span className="chip chip--verde" title={`Puede usarse otro producto de ${p.principiosActivos.join(' + ')}`}>
+                          <i className="fas fa-right-left" aria-hidden /> SI
+                        </span>
+                      ) : (
+                        <span className="chip chip--naranja">NO</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -135,6 +146,7 @@ export function Paso4Emision({
   /* Los productos son los mismos en todas las órdenes, así que "por OT" es la cantidad de una
      cualquiera; el total de subelementos es ese número por la cantidad de órdenes. */
   const porOrden = ordenes[0]?.productos.length ?? 0
+  const conReemplazo = (ordenes[0]?.productos ?? []).filter((p) => p.permitirReemplazo)
 
   const marcadas = ordenes.filter((o) => o.estadoEnvio === OT_ESTADO_ENVIAR_AHORA)
   const todasMarcadas = ordenes.length > 0 && marcadas.length === ordenes.length
@@ -227,6 +239,31 @@ export function Paso4Emision({
             cargadas en Monday, así que ni las cantidades de producto ni los importes se pueden
             calcular acá. Las órdenes igual se crean; los totales los resuelven las fórmulas del
             tablero cuando el dato esté.
+          </span>
+        </div>
+      )}
+
+      {/* Los productos son los mismos en todas las órdenes: el permiso de reemplazo se resume una
+          vez acá, además de verse en cada tarjeta. */}
+      {porOrden > 0 && (
+        <div className="aviso aviso--info" style={{ marginBottom: 16 }}>
+          <i className="fas fa-right-left" aria-hidden />
+          <span>
+            {conReemplazo.length === 0 ? (
+              <>Ningún producto permite reemplazo: todos van con <strong>NO</strong>.</>
+            ) : (
+              <>
+                {conReemplazo.length === 1 ? 'Permite' : 'Permiten'} reemplazo por otro con el mismo
+                principio activo:{' '}
+                {conReemplazo.map((p, i) => (
+                  <span key={p.productoId}>
+                    {i > 0 && ', '}
+                    <strong>{p.etiqueta}</strong> ({p.principiosActivos.join(' + ')})
+                  </span>
+                ))}
+                . {porOrden - conReemplazo.length > 0 && 'El resto va con NO.'}
+              </>
+            )}
           </span>
         </div>
       )}

@@ -124,6 +124,18 @@ export function productosTomados(borrador: BorradorOrden, uidActual: string): Se
   return tomados
 }
 
+/**
+ * Productos que pueden reemplazar a `producto`: los activos que comparten al menos un principio
+ * activo con él, sin contarlo a él mismo.
+ */
+export function reemplazosDe(producto: Producto, productos: Producto[]): Producto[] {
+  if (producto.principiosActivos.length === 0) return []
+  const suyos = new Set(producto.principiosActivos)
+  return productos.filter(
+    (p) => p.id !== producto.id && p.principiosActivos.some((pa) => suyos.has(pa)),
+  )
+}
+
 /** Líneas de producto que están realmente cargadas (con producto elegido). */
 export const lineasCargadas = (borrador: BorradorOrden): LineaProducto[] =>
   borrador.productos.filter((l) => l.productoId)
@@ -224,6 +236,9 @@ function productosPara(
       cantPorHa,
       cantTotal,
       precioUnitario: producto.precioUnitario,
+      principiosActivos: producto.principiosActivos,
+      // Sin principio activo no hay equivalente posible: aunque la línea lo tuviera, va en NO.
+      permitirReemplazo: linea.permitirReemplazo && producto.principiosActivos.length > 0,
       totalUsd:
         cantTotal != null && producto.precioUnitario != null
           ? redondear(cantTotal * producto.precioUnitario)

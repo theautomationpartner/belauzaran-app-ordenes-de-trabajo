@@ -180,6 +180,12 @@ export const COL_PRODUCTO = {
    * cargada y coincide 1 a 1 con las opciones del subitem.
    */
   etiqueta: 'dropdown_mm3ca3dn',
+  /**
+   * 🤚Principio Activo. Los productos que comparten uno son equivalentes entre sí: es lo que se
+   * ofrece como reemplazo. Ojo: hay etiquetas con coma ("2,4-D"), así que se leen de `values` y no
+   * partiendo el `text` (ver `etiquetasDropdown`).
+   */
+  principioActivo: 'dropdown_mm7z94pj',
 } as const
 
 /** 🛠️🚜 Maquinarias, Herramientas y Rodados (18410927187). */
@@ -205,4 +211,10 @@ export const COL_PRODUCTO_OT = {
   cantPorHa: 'numeric_mm3869nh',
   hectareas: 'numeric_mm3fvr3q',
   precioUnitario: 'numeric_mm415mdz',
+  /** Permitir Reemplazo: si el contratista puede usar otro producto con el mismo principio activo. */
+  permitirReemplazo: 'color_mm8332q5',
 } as const
+
+/** Etiquetas de `COL_PRODUCTO_OT.permitirReemplazo`. */
+export const REEMPLAZO_SI = 'SI'
+export const REEMPLAZO_NO = 'NO'

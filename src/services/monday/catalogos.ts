@@ -31,7 +31,15 @@ import {
   PRODUCTO_ESTADOS_VALIDOS,
   TABLEROS,
 } from './columns'
-import { etiquetas, idsConectados, numero, porId, texto, type ColumnaCruda } from './parse'
+import {
+  etiquetas,
+  etiquetasDropdown,
+  idsConectados,
+  numero,
+  porId,
+  texto,
+  type ColumnaCruda,
+} from './parse'
 
 export interface ItemCrudo {
   id: string
@@ -55,7 +63,8 @@ const ids = (...cols: string[]) => JSON.stringify(cols)
  * devuelven `text` y `value` en `null` aunque tengan items vinculados, y los ids sólo aparecen
  * en `linked_item_ids`. Sin el fragmento, el filtro de contactos por proveedor no encuentra nada.
  */
-const CAMPOS_COLUMNA = 'id text value ... on BoardRelationValue { linked_item_ids }'
+const CAMPOS_COLUMNA =
+  'id text value ... on BoardRelationValue { linked_item_ids } ... on DropdownValue { values { label } }'
 
 /**
  * Trae TODOS los items de un tablero siguiendo el cursor. Monday pagina de a 500 como máximo;
@@ -218,6 +227,7 @@ async function traerProductos(): Promise<Producto[]> {
     COL_PRODUCTO.cantPorHa,
     COL_PRODUCTO.precioUnitario,
     COL_PRODUCTO.etiqueta,
+    COL_PRODUCTO.principioActivo,
   )}) { ${CAMPOS_COLUMNA} }`
   const items = await traerItems(TABLEROS.productos, seleccion, 300)
 
@@ -238,6 +248,7 @@ async function traerProductos(): Promise<Producto[]> {
         /* La etiqueta viene cargada en el tablero y coincide con las opciones del dropdown del
            subitem. El respaldo compuesto sólo actúa si algún producto nuevo todavía no la tiene. */
         etiqueta: etiqueta || (unidad ? `${nombre} - ${unidad}` : nombre),
+        principiosActivos: etiquetasDropdown(cols, COL_PRODUCTO.principioActivo),
       }
     })
     .filter((p) => PRODUCTO_ESTADOS_VALIDOS.includes(p.estado))
@@ -343,6 +354,15 @@ export async function traerCatalogos(): Promise<Catalogos> {
     campos,
     productos,
     maquinarias,
-    filtros: { tiposProducto, tiposMaquinaria, clasificacionesMaquinaria },
+    filtros: {
+      tiposProducto,
+      /* Los principios activos salen de los productos activos y no de la configuración de la
+         columna: así el filtro no ofrece etiquetas que no traen ningún producto. */
+      principiosActivos: [...new Set(productos.flatMap((p) => p.principiosActivos))].sort((a, b) =>
+        a.localeCompare(b, 'es'),
+      ),
+      tiposMaquinaria,
+      clasificacionesMaquinaria,
+    },
   }
 }
