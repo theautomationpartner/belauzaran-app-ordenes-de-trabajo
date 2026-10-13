@@ -7,6 +7,8 @@ import { mondayApi, subirArchivo } from './sdk'
 import {
   COL_FACTURA,
   COL_REMITO,
+  COL_FACTURA_ESTADO,
+  FACTURA_ESTADO_REGISTRAR,
   FACTURA_ORIGEN_MANUAL,
   TABLERO_DESTINOS,
   TABLERO_FACTURAS,
@@ -55,12 +57,14 @@ export async function traerDatosRemito(): Promise<DatosRemito> {
 
 /**
  * Estado de un alta. El proceso tiene etapas —crear el item, subir el archivo y, en la factura,
- * marcarla MANUAL— y puede cortarse en cualquiera: `archivoSubido` y `completo` dicen hasta dónde
- * llegó, para retomar desde ahí sin crear otro item.
+ * marcarla MANUAL y después Registrar— y puede cortarse en cualquiera: `archivoSubido`,
+ * `manualMarcado` y `completo` dicen hasta dónde llegó, para retomar sin crear otro item.
  */
 export interface ResultadoAlta {
   itemId: string
   archivoSubido: boolean
+  /** Sólo factura: el origen ya quedó en MANUAL (falta, como mucho, pasar a Registrar). */
+  manualMarcado: boolean
   /** Todas las etapas terminaron: recién ahí se avisa que se cargó con éxito. */
   completo: boolean
   /** Motivo del corte, si lo hubo. */
@@ -102,9 +106,9 @@ export const columnaArchivoRemito = (formato: 'PDF' | 'JPEG'): string =>
 export async function subirArchivoRemito(itemId: string, formato: 'PDF' | 'JPEG', archivo: File): Promise<ResultadoAlta> {
   try {
     await subirArchivo(itemId, columnaArchivoRemito(formato), archivo)
-    return { itemId, archivoSubido: true, completo: true, error: null }
+    return { itemId, archivoSubido: true, manualMarcado: false, completo: true, error: null }
   } catch (e: unknown) {
-    return { itemId, archivoSubido: false, completo: false, error: mensaje(e) }
+    return { itemId, archivoSubido: false, manualMarcado: false, completo: false, error: mensaje(e) }
   }
 }
 
@@ -118,50 +122,70 @@ export async function crearRemito(alta: AltaRemito): Promise<ResultadoAlta> {
   return subirArchivoRemito(itemId, alta.formato, alta.archivo)
 }
 
+/** Cambia una columna de estado de la factura. */
+const marcarFactura = (itemId: string, columna: string, etiqueta: string) =>
+  mondayApi(
+    `mutation ($i: ID!, $c: JSON!) {
+      change_multiple_column_values(board_id: ${TABLERO_FACTURAS}, item_id: $i, column_values: $c) { id }
+    }`,
+    { i: itemId, c: JSON.stringify({ [columna]: { label: etiqueta } }) },
+  )
+
+/** Hasta dónde llegó una factura; es lo que se guarda para retomarla. */
+export type ProgresoFactura = Pick<ResultadoAlta, 'archivoSubido' | 'manualMarcado'>
+
 /**
- * Termina el alta de una factura a partir de donde haya quedado: sube el PDF si falta y, SÓLO con
- * el PDF ya en la columna, marca el origen MANUAL.
+ * Termina el alta de una factura a partir de donde haya quedado, en este orden y cada paso SÓLO si
+ * el anterior salió bien:
  *
- * El orden importa: el cambio a MANUAL es lo que pone a procesar la factura, y una factura
- * procesada sin PDF falla. Por eso el item se crea sin estado y MANUAL va al final.
+ * 1. Sube el PDF.
+ * 2. Marca el origen MANUAL.
+ * 3. Pasa 🤖 Estado de Registro a "Registrar", que es lo que la manda a procesar.
+ *
+ * El orden importa: una factura que se procesa sin PDF falla. Por eso el item se crea sin estados
+ * y los dos estados van al final, con el PDF ya en la columna.
  */
 export async function completarFactura(
   itemId: string,
   archivo: File,
-  archivoSubido: boolean,
+  progreso: ProgresoFactura,
 ): Promise<ResultadoAlta> {
-  if (!archivoSubido) {
+  const corte = (archivoSubido: boolean, manualMarcado: boolean, error: string): ResultadoAlta => ({
+    itemId,
+    archivoSubido,
+    manualMarcado,
+    completo: false,
+    error,
+  })
+
+  if (!progreso.archivoSubido) {
     try {
       await subirArchivo(itemId, COL_FACTURA.archivo, archivo)
     } catch (e: unknown) {
-      return {
-        itemId,
-        archivoSubido: false,
-        completo: false,
-        error: `No se pudo subir el PDF: ${mensaje(e)}`,
-      }
+      return corte(false, false, `No se pudo subir el PDF: ${mensaje(e)}`)
+    }
+  }
+  if (!progreso.manualMarcado) {
+    try {
+      await marcarFactura(itemId, COL_FACTURA.origen, FACTURA_ORIGEN_MANUAL)
+    } catch (e: unknown) {
+      return corte(true, false, `El PDF se subió, pero no se pudo marcar como MANUAL: ${mensaje(e)}`)
     }
   }
   try {
-    await mondayApi(
-      `mutation ($i: ID!, $c: JSON!) {
-        change_multiple_column_values(board_id: ${TABLERO_FACTURAS}, item_id: $i, column_values: $c) { id }
-      }`,
-      { i: itemId, c: JSON.stringify({ [COL_FACTURA.origen]: { label: FACTURA_ORIGEN_MANUAL } }) },
-    )
-    return { itemId, archivoSubido: true, completo: true, error: null }
+    await marcarFactura(itemId, COL_FACTURA_ESTADO, FACTURA_ESTADO_REGISTRAR)
   } catch (e: unknown) {
-    return {
-      itemId,
-      archivoSubido: true,
-      completo: false,
-      error: `El PDF se subió, pero no se pudo marcar como MANUAL: ${mensaje(e)}`,
-    }
+    return corte(
+      true,
+      true,
+      `La factura quedó con el PDF y en MANUAL, pero no se pudo pasar a Registrar: ${mensaje(e)}`,
+    )
   }
+  return { itemId, archivoSubido: true, manualMarcado: true, completo: true, error: null }
 }
 
-/** Crea la factura sin estado y la completa (PDF primero, MANUAL después). */
+/** Crea la factura sin estados y la completa (PDF → MANUAL → Registrar). */
 export async function crearFactura(archivo: File): Promise<ResultadoAlta> {
   const itemId = await crearItem(TABLERO_FACTURAS, `Factura - ${archivo.name.replace(/\.pdf$/i, '')}`, {})
-  return completarFactura(itemId, archivo, false)
+  return completarFactura(itemId, archivo, { archivoSubido: false, manualMarcado: false })
 }

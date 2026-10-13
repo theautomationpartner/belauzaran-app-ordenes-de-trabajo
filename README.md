@@ -233,7 +233,7 @@ Formulario de una pantalla. Primero se elige, obligatoriamente, **REMITO** o **F
 | Destino | `board_relation_mm1ft4eh` (🛖 Destinos, `18411551565`) | — |
 | Formato | `color_mm38pr6n`: **PDF** o **JPEG** | siempre PDF |
 | Archivo | PDF → `file_mm1fs67h` · JPEG → `file_mm38hc4r` | `file_mm1axdpr` |
-| Otros | — | `color_mm7fkx7d` = **MANUAL** |
+| Otros | — | `color_mm7fkx7d` = **MANUAL**, después `color_mm1ajk2x` = **Registrar** |
 
 Se sube **un solo archivo** y tiene que corresponder al formato: con PDF sólo `.pdf`; con JPEG
 cualquier foto (`.jpg`, `.jpeg`, `.png`, `.heic`…) pero nunca un PDF. Si se elige otra cosa no se
@@ -254,8 +254,9 @@ Orden de las escrituras:
 - **Remito:** se crea el item con sus datos y después se sube el archivo. La automatización del
   tablero procesa el remito sólo si tiene archivo (al crearse o cuando cambia la columna), así que
   un remito que quedó sin archivo no dispara nada a medias.
-- **Factura:** se crea el item **sin estado**, se sube el PDF y **recién con el PDF arriba** se
-  marca `MANUAL`, que es lo que la pone a procesar. Si el PDF no sube, la factura no se marca.
+- **Factura:** se crea el item **sin estados**, se sube el PDF, **recién con el PDF arriba** se
+  marca el origen `MANUAL` y, al final, 🤖 Estado de Registro pasa a `Registrar`, que es lo que la
+  manda a procesar. Cada paso sólo corre si el anterior salió bien.
 
 Si una etapa falla, la pantalla lo dice y ofrece retomar **sobre el mismo item** (no crea otro).
 El aviso de éxito aparece sólo cuando terminaron todas. Mientras se carga, o si quedó algo a

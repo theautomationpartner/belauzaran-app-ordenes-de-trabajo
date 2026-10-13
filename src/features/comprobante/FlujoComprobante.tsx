@@ -286,7 +286,7 @@ export function FlujoComprobante({ cabecera, onPendiente }: Props) {
     setEnvio({ ...envio, reintentando: true })
     const r =
       t === 'FACTURA'
-        ? await completarFactura(resultado.itemId, f, resultado.archivoSubido)
+        ? await completarFactura(resultado.itemId, f, resultado)
         : await subirArchivoRemito(resultado.itemId, fmt!, f)
     cerrarResultado(r, t, f, fmt)
   }
@@ -319,7 +319,7 @@ export function FlujoComprobante({ cabecera, onPendiente }: Props) {
                 <p className="exito-txt">
                   {t === 'REMITO'
                     ? `Se creó el remito con el archivo "${envio.archivo.name}".`
-                    : `Se creó la factura con el PDF "${envio.archivo.name}" y quedó marcada como MANUAL.`}
+                    : `Se creó la factura con el PDF "${envio.archivo.name}", quedó como MANUAL y pasó a Registrar.`}
                 </p>
                 <div className="acciones-bloque exito-acciones">
                   <button type="button" className="btn btn-primary" onClick={otro}>
@@ -344,7 +344,7 @@ export function FlujoComprobante({ cabecera, onPendiente }: Props) {
                 <div className="csub">
                   {resultado.error}
                   {t === 'FACTURA' && !resultado.archivoSubido && (
-                    <> Mientras no esté el PDF, la factura NO se marca como MANUAL.</>
+                    <> Mientras no esté el PDF, la factura NO se marca como MANUAL ni pasa a Registrar.</>
                   )}
                 </div>
                 <div className="aviso aviso--warn" style={{ marginBottom: 14 }}>
@@ -363,7 +363,11 @@ export function FlujoComprobante({ cabecera, onPendiente }: Props) {
                     ) : (
                       <>
                         <i className="fas fa-rotate-right" aria-hidden />{' '}
-                        {resultado.archivoSubido ? 'Reintentar marcar MANUAL' : 'Reintentar subir el archivo'}
+                        {!resultado.archivoSubido
+                          ? 'Reintentar subir el archivo'
+                          : !resultado.manualMarcado
+                            ? 'Reintentar marcar MANUAL'
+                            : 'Reintentar pasar a Registrar'}
                       </>
                     )}
                   </button>
@@ -569,7 +573,7 @@ export function FlujoComprobante({ cabecera, onPendiente }: Props) {
                 ) : (
                   <div className="resumen-dato">
                     <span className="resumen-lbl">Origen</span>
-                    <span className="resumen-val">MANUAL</span>
+                    <span className="resumen-val">MANUAL → Registrar</span>
                   </div>
                 )}
                 <div className="resumen-dato">

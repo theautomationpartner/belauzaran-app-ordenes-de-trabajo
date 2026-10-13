@@ -248,3 +248,10 @@ export const COL_FACTURA = {
 } as const
 
 export const FACTURA_ORIGEN_MANUAL = 'MANUAL'
+
+/**
+ * 🤖 Estado de Registro (`color_mm1ajk2x`) de la factura. "Registrar" es lo que la manda a
+ * procesar; la app lo pone al final, con el PDF subido y el origen ya en MANUAL.
+ */
+export const COL_FACTURA_ESTADO = 'color_mm1ajk2x'
+export const FACTURA_ESTADO_REGISTRAR = 'Registrar'
