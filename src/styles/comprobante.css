@@ -1,0 +1,354 @@
+/*
+ * Registrar Remito / Factura. Cada elección tiene su color y, elegida, se pinta entera: tiene que
+ * quedar claro de un vistazo QUÉ se está registrando y en qué formato, también en el celular.
+ *
+ * Colores: remito azul, factura verde campo, PDF rojo y JPEG violeta (los mismos que usa monday en
+ * la columna "Tipo de Archivo"), destinos ámbar.
+ */
+.comprobante {
+  max-width: 920px;
+}
+.comprobante .opcion--remito {
+  --op: #0073ea;
+  --op-suave: #eaf2fd;
+}
+.comprobante .opcion--factura {
+  --op: #2f6f4e;
+  --op-suave: #eaf4ee;
+}
+.comprobante .opcion--pdf {
+  --op: #df2f4a;
+  --op-suave: #fdecef;
+}
+.comprobante .opcion--jpeg {
+  --op: #9d50dd;
+  --op-suave: #f4ebfc;
+}
+.comprobante .opcion--destino {
+  --op: #b25e09;
+  --op-suave: #fff4e5;
+}
+
+/* ===== Secciones numeradas ===== */
+.seccion-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.seccion-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  background: #fff;
+  color: var(--text-gray);
+  border: 1.5px solid var(--border);
+}
+.seccion--completa .seccion-num {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  font-size: 11px;
+}
+.seccion-tit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15.5px;
+  font-weight: 800;
+}
+.seccion-ayuda {
+  font-size: 12.5px;
+  color: var(--text-gray);
+  margin: 0 0 12px 36px;
+}
+
+/* ===== Opciones (radio en tarjeta) ===== */
+.opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+.opciones--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.opciones--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.opcion {
+  --op: var(--primary-blue);
+  --op-suave: #eaf2fd;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 12px 14px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text-dark);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s, box-shadow 0.15s;
+}
+.opcion:hover {
+  border-color: var(--op);
+}
+.opcion:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--op) 30%, transparent);
+}
+.opcion--grande {
+  min-height: 96px;
+  padding: 16px 18px;
+}
+.opcion-ic {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: var(--op-suave);
+  color: var(--op);
+}
+.opcion--grande .opcion-ic {
+  width: 52px;
+  height: 52px;
+  font-size: 24px;
+}
+.opcion-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.opcion-tit {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+.opcion--grande .opcion-tit {
+  font-size: 19px;
+}
+.opcion-det {
+  font-size: 12.5px;
+  color: var(--text-gray);
+}
+.opcion-radio {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #fff;
+  background: #fff;
+}
+/* Elegida: borde y fondo del color de la opción, ícono invertido y tilde. */
+.opcion--activa {
+  border-color: var(--op);
+  background: var(--op-suave);
+  box-shadow: 0 0 0 1px var(--op), 0 4px 14px color-mix(in srgb, var(--op) 22%, transparent);
+}
+.opcion--activa .opcion-ic {
+  background: var(--op);
+  color: #fff;
+}
+.opcion--activa .opcion-tit {
+  color: var(--op);
+}
+.opcion--activa .opcion-radio {
+  background: var(--op);
+  border-color: var(--op);
+}
+/* La que no se eligió se apaga: queda claro que es una u otra. */
+.opcion--apagada {
+  opacity: 0.55;
+}
+.opcion--apagada:hover {
+  opacity: 0.85;
+}
+
+/* ===== Personas ===== */
+.persona {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-dark);
+  transition: 0.15s;
+}
+.persona:hover {
+  border-color: var(--primary-blue);
+}
+.persona-ava {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 50%;
+  background: #eaf2fd;
+  color: var(--primary-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+.persona-nom {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.persona-ok {
+  color: var(--primary-blue);
+  font-size: 18px;
+}
+.persona--activa {
+  border-color: var(--primary-blue);
+  background: #eaf2fd;
+  box-shadow: 0 0 0 1px var(--primary-blue);
+}
+.persona--activa .persona-ava {
+  background: var(--primary-blue);
+  color: #fff;
+}
+.persona--activa .persona-nom {
+  font-weight: 800;
+}
+
+/* ===== Archivo ===== */
+.archivo-input {
+  display: none;
+}
+.archivo-zona {
+  --op: #df2f4a;
+  --op-suave: #fdecef;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 26px 16px;
+  border: 2px dashed var(--op);
+  border-radius: 12px;
+  background: var(--op-suave);
+  color: var(--text-dark);
+  cursor: pointer;
+  text-align: center;
+  transition: 0.15s;
+}
+.archivo-zona--imagen {
+  --op: #9d50dd;
+  --op-suave: #f4ebfc;
+}
+.archivo-zona:hover,
+.archivo-zona--sobre {
+  border-style: solid;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--op) 22%, transparent);
+}
+.archivo-zona-ic {
+  font-size: 34px;
+  color: var(--op);
+}
+.archivo-zona-tit {
+  font-size: 15px;
+  font-weight: 800;
+}
+.archivo-zona-sub {
+  font-size: 13px;
+  color: var(--text-gray);
+}
+.archivo-zona-ayuda {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--op);
+}
+.archivo-elegido {
+  --op: #df2f4a;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 12px 14px;
+  border: 2px solid var(--op);
+  border-radius: 12px;
+  background: #fff;
+}
+.archivo-elegido--imagen {
+  --op: #9d50dd;
+}
+.archivo-elegido-ic {
+  font-size: 28px;
+  color: var(--op);
+  flex: none;
+}
+.archivo-elegido-body {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.archivo-elegido-nom {
+  font-weight: 700;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.archivo-elegido-acciones {
+  display: flex;
+  gap: 6px;
+}
+
+/* ===== Celular ===== */
+@media (max-width: 720px) {
+  /* "Arrastrar" no existe con el dedo. */
+  .archivo-zona-pc {
+    display: none;
+  }
+  .seccion-ayuda {
+    margin-left: 0;
+  }
+  .opciones--3 {
+    grid-template-columns: 1fr;
+  }
+  .opciones {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 460px) {
+  .opciones,
+  .opciones--2 {
+    grid-template-columns: 1fr;
+  }
+  .opcion--grande {
+    min-height: 78px;
+  }
+  .archivo-elegido-acciones {
+    width: 100%;
+  }
+  .archivo-elegido-acciones .btn {
+    flex: 1;
+  }
+}

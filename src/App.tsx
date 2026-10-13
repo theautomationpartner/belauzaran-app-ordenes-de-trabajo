@@ -8,6 +8,7 @@ import { Paso2Productos } from '@/features/orden/Paso2Productos'
 import { Paso3Campos } from '@/features/orden/Paso3Campos'
 import { Paso4Emision } from '@/features/orden/Paso4Emision'
 import { FlujoBarbecho } from '@/features/barbecho/FlujoBarbecho'
+import { FlujoComprobante } from '@/features/comprobante/FlujoComprobante'
 import { traerCatalogos } from '@/services/monday/catalogos'
 import { SinAcceso, mondayHabilitado } from '@/services/monday/sdk'
 import { obtenerDatosSesion } from '@/services/monday/sesion'
@@ -28,6 +29,7 @@ const PASOS = ['Datos de la orden', 'Productos', 'Campos y lotes', 'Revisar y em
 const OPERACIONES: { id: Operacion; nombre: string }[] = [
   { id: 'ORDEN_DE_TRABAJO', nombre: 'Cargar Orden de Trabajo' },
   { id: 'ASIGNACION_BARBECHO', nombre: 'Asignación de Barbecho' },
+  { id: 'REMITO_FACTURA', nombre: 'Registrar Remito/Factura' },
 ]
 
 type EstadoCarga =
@@ -261,6 +263,10 @@ export function App() {
   /* La asignación de barbecho usa los mismos catálogos (los cultivos) y trae aparte lo suyo. */
   if (operacion === 'ASIGNACION_BARBECHO') {
     return <FlujoBarbecho cultivos={carga.catalogos.cultivos} cabecera={armarCabecera} />
+  }
+
+  if (operacion === 'REMITO_FACTURA') {
+    return <FlujoComprobante cabecera={armarCabecera} />
   }
 
   /* Emisión terminada. Se detalla orden por orden en vez de dar un "listo" global: como los

@@ -218,3 +218,33 @@ export const COL_PRODUCTO_OT = {
 /** Etiquetas de `COL_PRODUCTO_OT.permitirReemplazo`. */
 export const REEMPLAZO_SI = 'SI'
 export const REEMPLAZO_NO = 'NO'
+
+/* ===== Registrar Remito / Factura ===== */
+
+/** ✋REMITOS- Retiros de Productos en Proveedor. */
+export const TABLERO_REMITOS = '18410927148'
+/** 🤖 🧾 Comprobantes de Compras (facturas). */
+export const TABLERO_FACTURAS = '18410927147'
+/** 🛖 Destino de Almacenamiento de Productos (Tandil, Ayacucho, Tres Arroyos). */
+export const TABLERO_DESTINOS = '18411551565'
+
+export const COL_REMITO = {
+  /**
+   * ✋ Persona. Sólo se puede asignar a quien tiene acceso al tablero, así que las opciones son los
+   * suscriptores del tablero de remitos y no la lista completa de usuarios de la cuenta.
+   */
+  persona: 'person',
+  destino: 'board_relation_mm1ft4eh',
+  /** 🤖 Tipo de Archivo: PDF o JPEG. Define en qué columna va el archivo. */
+  formato: 'color_mm38pr6n',
+  archivoPdf: 'file_mm1fs67h',
+  archivoJpeg: 'file_mm38hc4r',
+} as const
+
+export const COL_FACTURA = {
+  archivo: 'file_mm1axdpr',
+  /** 🤖Origen Factura: las cargadas desde la app van como MANUAL (las otras llegan POR EMAIL). */
+  origen: 'color_mm7fkx7d',
+} as const
+
+export const FACTURA_ORIGEN_MANUAL = 'MANUAL'

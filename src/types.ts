@@ -5,7 +5,7 @@
  */
 
 /** Operación elegida en la barra superior. */
-export type Operacion = 'ORDEN_DE_TRABAJO' | 'ASIGNACION_BARBECHO'
+export type Operacion = 'ORDEN_DE_TRABAJO' | 'ASIGNACION_BARBECHO' | 'REMITO_FACTURA'
 
 /** Item genérico de un tablero maestro: lo mínimo para poblar un selector. */
 export interface ItemBasico {

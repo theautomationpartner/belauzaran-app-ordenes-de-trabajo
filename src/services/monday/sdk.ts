@@ -91,3 +91,46 @@ export async function mondayApi<T>(query: string, variables?: Record<string, unk
   if (!json.data) throw new Error('Monday no devolvió datos.')
   return json.data
 }
+
+/**
+ * Endpoint de subida de archivos. monday no los acepta en `/v2` sino en `/v2/file`, como
+ * `multipart/form-data`. En desarrollo el proxy de Vite ya lleva `/monday-api/file` a `/v2/file`;
+ * en producción va por `/api/archivo`, que verifica la sesión igual que `/api/monday`.
+ */
+const ENDPOINT_ARCHIVO = import.meta.env.DEV ? '/monday-api/file' : '/api/archivo'
+
+/**
+ * Sube un archivo a una columna `file` de un item ya creado.
+ *
+ * Va con los campos `query` + `variables[file]`, que es el formato que entiende el endpoint de
+ * archivos de monday. No se pone `Content-Type` a mano: el navegador lo arma con el `boundary`.
+ */
+export async function subirArchivo(itemId: string, columnaId: string, archivo: File): Promise<void> {
+  let cabecera: string
+  try {
+    cabecera = await autorizacion()
+  } catch {
+    throw new SinAcceso('No hay una sesión de monday activa.')
+  }
+
+  const form = new FormData()
+  form.append(
+    'query',
+    `mutation ($file: File!) { add_file_to_column(item_id: ${Number(itemId)}, column_id: ${JSON.stringify(
+      columnaId,
+    )}, file: $file) { id } }`,
+  )
+  form.append('variables[file]', archivo, archivo.name)
+
+  const res = await fetch(ENDPOINT_ARCHIVO, {
+    method: 'POST',
+    headers: { Authorization: cabecera, 'API-Version': API_VERSION },
+    body: form,
+  })
+  if (res.status === 401) throw new SinAcceso(await motivoDelFallo(res))
+  if (!res.ok) throw new Error(await motivoDelFallo(res))
+
+  const json = (await res.json()) as Respuesta<{ add_file_to_column?: { id: string } | null }>
+  if (json.errors?.length) throw new Error(json.errors.map((e) => e.message).join(' · '))
+  if (!json.data?.add_file_to_column?.id) throw new Error('monday no confirmó el archivo subido.')
+}

@@ -222,3 +222,32 @@ Los montos de la OP (`lookup_mm461ecy`, `lookup_mm46fbqv`, `lookup_mm456wg0`, `l
 son espejos de fórmulas de la OT, y **la API los devuelve vacíos**. La app los lee de cada OT:
 U$ Labor `formula_mm09mxrz`, U$ Total `formula_mm45te4n`, Costo x Ha `formula_mm45hc65`, y U$
 Producto como suma de `formula_mm416gx` de sus subelementos.
+
+## Registrar Remito / Factura
+
+Formulario de una pantalla. Primero se elige, obligatoriamente, **REMITO** o **FACTURA**.
+
+| | Remito (`18410927148`) | Factura (`18410927147`) |
+| --- | --- | --- |
+| Persona | `person` — sólo los suscriptores del tablero (la columna no acepta a otros) | — |
+| Destino | `board_relation_mm1ft4eh` (🛖 Destinos, `18411551565`) | — |
+| Formato | `color_mm38pr6n`: **PDF** o **JPEG** | siempre PDF |
+| Archivo | PDF → `file_mm1fs67h` · JPEG → `file_mm38hc4r` | `file_mm1axdpr` |
+| Otros | — | `color_mm7fkx7d` = **MANUAL** |
+
+Se sube **un solo archivo** y tiene que corresponder al formato: con PDF sólo `.pdf`; con JPEG
+cualquier foto (`.jpg`, `.jpeg`, `.png`, `.heic`…) pero nunca un PDF. Si se elige otra cosa no se
+carga, y la pantalla dice qué se intentó subir y qué se esperaba.
+
+### Subida de archivos
+
+monday recibe los archivos en `/v2/file` como `multipart/form-data`. En desarrollo pasan por el
+proxy de Vite (`/monday-api/file`); en el deploy por [`api/archivo.ts`](api/archivo.ts), que
+verifica la sesión igual que `api/monday.ts`.
+
+Vercel corta los pedidos de más de ~4,5 MB. Por eso las fotos que pasan de ~3,6 MB se vuelven a
+guardar en el navegador como JPEG de hasta 2400 px de lado (el remito se sigue leyendo), y los PDF
+de más de 4 MB se rechazan con un aviso.
+
+Primero se crea el item y después se adjunta el archivo. Si la subida falla, el item queda creado
+y la pantalla de resultado ofrece reintentar sólo el archivo.
