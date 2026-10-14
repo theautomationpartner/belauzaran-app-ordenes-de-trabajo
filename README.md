@@ -319,8 +319,8 @@ como reales y al reintentar no se duplican.
 
 | Alta | Tablero | Obligatorio | Opcional | Nace con |
 | --- | --- | --- | --- | --- |
-| Proveedor | ✋ Proveedores `18410927151` | Nombre completo (`text_mm84mmvf`, también el nombre del item), CUIT `XX-XXXXXXXX-X` (`text_mm0xdjya`) | Tipo (`dropdown_mm39x0j7`), ubicación (`location_mm33fd1b`), contactos (`board_relation_mm09gcys`) | `status` = Activo |
-| Contacto (desde el proveedor) | ✋ Contactos `18410927146` | Nombre/s, apellido/s y WhatsApp **o** email | el otro medio | conectado al proveedor |
+| Proveedor | ✋ Proveedores `18410927151` | Nombre completo (`text_mm84mmvf`, también el nombre del item), CUIT `XX-XXXXXXXX-X` (`text_mm0xdjya`), Tipo (`dropdown_mm39x0j7`, al menos uno; se leen los que haya en monday y Fletes viene marcado) | ubicación (`location_mm33fd1b`), contactos (`board_relation_mm09gcys`) | `status` = Activo |
+| Contacto (desde el proveedor) | ✋ Contactos `18410927146` | Nombre/s y WhatsApp **o** email | apellido/s, el otro medio | conectado al proveedor |
 | Destino granos en depósito | 🤖 Granos en Deposito `18410927175` | Cultivo (`board_relation_mm1fxqbh`), silo/acopio (`board_relation_mm1fq67c`) | ubicación (`location_mm1fh806`) | `color_mm3fjkvh` = Activo, nombre "Cultivo - Silo" |
 
 - **CUIT:** los guiones se ponen solos; un CUIT ya cargado bloquea (hay que elegir ese proveedor).

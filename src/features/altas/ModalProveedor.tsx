@@ -84,7 +84,9 @@ function ModalContacto({ inicial, onListo, onCerrar }: ModalContactoProps) {
           <input className="fc" value={c.nombre} onChange={(e) => set({ nombre: e.target.value })} autoComplete="off" />
         </label>
         <label className="ig">
-          <span className="ig-lbl ig-req">Apellido/s</span>
+          <span className="ig-lbl">
+            Apellido/s <span className="chip chip--opcional">Opcional</span>
+          </span>
           <input className="fc" value={c.apellido} onChange={(e) => set({ apellido: e.target.value })} autoComplete="off" />
         </label>
         <label className="ig">
@@ -120,7 +122,7 @@ function ModalContacto({ inicial, onListo, onCerrar }: ModalContactoProps) {
         </label>
       </div>
       <p className="ig-hint" style={{ marginTop: 10 }}>
-        Obligatorio: nombre, apellido y al menos uno de los dos medios (WhatsApp o email).
+        Obligatorio: el nombre y al menos uno de los dos medios (WhatsApp o email).
       </p>
       {mostrar && faltan.length > 0 && <Faltan lista={faltan} />}
     </Modal>
@@ -237,9 +239,7 @@ export function ModalProveedor({ proveedores, contactos, tipos, tipoSugerido, in
         </div>
 
         <div className="ig" style={{ marginTop: 16 }}>
-          <span className="ig-lbl">
-            Tipo <span className="chip chip--opcional">Opcional</span>
-          </span>
+          <span className="ig-lbl ig-req">Tipo</span>
           <div className="pastillas">
             {tipos.map((t) => {
               const elegido = p.tipos.includes(t)

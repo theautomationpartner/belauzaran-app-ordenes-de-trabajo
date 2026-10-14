@@ -121,11 +121,10 @@ export const contactoVacio = (uid: string): BorradorContacto => ({
   email: '',
 })
 
-/** Qué falta para el contacto: nombre, apellido y al menos un medio (WhatsApp o email). */
+/** Qué falta para el contacto: nombre y al menos un medio (WhatsApp o email). El apellido es opcional. */
 export function faltantesContacto(c: BorradorContacto): string[] {
   const faltan: string[] = []
   if (!c.nombre.trim()) faltan.push('Cargá el nombre.')
-  if (!c.apellido.trim()) faltan.push('Cargá el apellido.')
   const hayTel = c.whatsapp.trim() !== ''
   const hayMail = c.email.trim() !== ''
   if (!hayTel && !hayMail) faltan.push('Cargá el WhatsApp, el email o los dos.')
@@ -152,6 +151,7 @@ export interface BorradorProveedor {
 export function faltantesProveedor(p: BorradorProveedor, proveedores: Proveedor[]): string[] {
   const faltan: string[] = []
   if (!p.nombreCompleto.trim()) faltan.push('Cargá el nombre completo.')
+  if (p.tipos.length === 0) faltan.push('Elegí al menos un tipo de proveedor.')
   if (!p.cuit) faltan.push('Cargá el CUIT.')
   else if (!cuitCompleto(p.cuit)) faltan.push('El CUIT tiene que tener 11 dígitos: XX-XXXXXXXX-X.')
   else {
@@ -168,9 +168,9 @@ export function proveedoresParecidos(proveedores: Proveedor[], nombre: string): 
   return proveedores.filter((p) => normalizar(p.nombre).includes(q)).slice(0, 3)
 }
 
-/** Nombre del contacto en el tablero: "Nombre Apellido". */
+/** Nombre del contacto en el tablero: "Nombre Apellido", o sólo el nombre si no tiene apellido. */
 export const nombreContacto = (c: { nombre: string; apellido: string }) =>
-  `${c.nombre.trim()} ${c.apellido.trim()}`.replace(/\s+/g, ' ')
+  `${c.nombre.trim()} ${c.apellido.trim()}`.replace(/\s+/g, ' ').trim()
 
 /** Contacto del catálogo para mostrar en un selector: nombre y cómo ubicarlo. */
 export const detalleContacto = (c: Contacto): string =>

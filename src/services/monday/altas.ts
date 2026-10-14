@@ -50,10 +50,12 @@ export async function traerOpcionesAlta(): Promise<OpcionesAlta> {
   let tiposProveedor: string[] = []
   try {
     const cfg = JSON.parse(config.boards[0]?.columns[0]?.settings_str ?? '{}') as {
-      labels?: { name: string }[]
+      labels?: { id: number; name: string }[]
       deactivated_labels?: number[]
     }
-    tiposProveedor = (cfg.labels ?? []).map((l) => l.name).filter(Boolean)
+    // Se ofrecen las que haya en monday hoy, sin las desactivadas: si suman un tipo, aparece solo.
+    const desactivadas = new Set(cfg.deactivated_labels ?? [])
+    tiposProveedor = (cfg.labels ?? []).filter((l) => !desactivadas.has(l.id)).map((l) => l.name).filter(Boolean)
   } catch {
     // Sin la configuración el tipo queda sin opciones: es opcional, el alta igual se puede hacer.
   }
@@ -93,9 +95,10 @@ async function crearContacto(c: BorradorContacto, proveedorId: string): Promise<
   const email = c.email.trim()
   const columnas: Record<string, unknown> = {
     [COL_CONTACTO_ALTA.nombre]: c.nombre.trim(),
-    [COL_CONTACTO_ALTA.apellido]: c.apellido.trim(),
     [COL_CONTACTO_ALTA.proveedores]: { item_ids: [Number(proveedorId)] },
   }
+  // El apellido es opcional: vacío no se manda.
+  if (c.apellido.trim()) columnas[COL_CONTACTO_ALTA.apellido] = c.apellido.trim()
   if (whatsapp) columnas[COL_CONTACTO_ALTA.whatsapp] = { phone: whatsapp, countryShortName: 'AR' }
   if (email) columnas[COL_CONTACTO_ALTA.email] = { email, text: email }
 
@@ -127,8 +130,8 @@ export async function crearProveedor(p: BorradorProveedor): Promise<ResultadoPro
     [COL_PROVEEDOR.estado]: { label: PROVEEDOR_ACTIVO },
     [COL_PROVEEDOR_ALTA.nombreCompleto]: nombre,
     [COL_PROVEEDOR.cuit]: p.cuit,
+    [COL_PROVEEDOR.tipo]: { labels: p.tipos },
   }
-  if (p.tipos.length > 0) columnas[COL_PROVEEDOR.tipo] = { labels: p.tipos }
   if (p.ubicacion) columnas[COL_PROVEEDOR_ALTA.ubicacion] = ubicacion(p.ubicacion)
   if (p.contactoIds.length > 0) columnas[COL_PROVEEDOR.contactos] = { item_ids: p.contactoIds.map(Number) }
 
