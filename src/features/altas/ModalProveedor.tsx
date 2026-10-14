@@ -19,7 +19,6 @@ import {
   type BorradorContacto,
   type BorradorProveedor,
 } from '@/lib/altas'
-import { crearProveedor, type ResultadoProveedor } from '@/services/monday/altas'
 
 let contador = 0
 const nuevoUid = () => `c${++contador}`
@@ -66,7 +65,7 @@ function ModalContacto({ inicial, onListo, onCerrar }: ModalContactoProps) {
           <i className="fas fa-user-plus" style={{ color: '#6200ee' }} aria-hidden /> Contacto nuevo
         </>
       }
-      subtitulo="Se crea junto con el proveedor, ya conectado a él."
+      subtitulo="Se crea junto con el proveedor, ya conectado a él, al confirmar la carga."
       onCerrar={onCerrar}
       textoCerrar="Cancelar"
       pie={
@@ -137,16 +136,22 @@ interface Props {
   tipos: string[]
   /** Tipo que se propone marcado: desde un flete contratado, "Fletes". */
   tipoSugerido?: string
-  onCreado: (r: ResultadoProveedor) => void
+  /** Proveedor nuevo ya cargado antes, para editarlo. */
+  inicial?: BorradorProveedor | null
+  /** Datos validados. No se crea nada: se crea al confirmar la carga que lo usa. */
+  onListo: (p: BorradorProveedor) => void
   onCerrar: () => void
 }
 
 /**
- * Alta de un proveedor que no existe, sin salir del formulario donde se lo necesita. Al crearse
- * queda asignado. Nace Activo; los contactos se pueden elegir de los existentes o cargar nuevos.
+ * Datos de un proveedor que no existe, cargados sin salir del formulario donde se lo necesita.
+ *
+ * Esta ventana NO crea nada en monday: valida y devuelve los datos, y el proveedor (con sus
+ * contactos nuevos) se crea recién cuando se confirma la carga que lo usa. Así, si al final la
+ * carga no se hace, no quedan proveedores sueltos en el tablero.
  */
-export function ModalProveedor({ proveedores, contactos, tipos, tipoSugerido, onCreado, onCerrar }: Props) {
-  const [p, setP] = useState<BorradorProveedor>({
+export function ModalProveedor({ proveedores, contactos, tipos, tipoSugerido, inicial, onListo, onCerrar }: Props) {
+  const [p, setP] = useState<BorradorProveedor>(() => inicial ?? {
     nombreCompleto: '',
     tipos: tipoSugerido && tipos.includes(tipoSugerido) ? [tipoSugerido] : [],
     cuit: '',
@@ -157,8 +162,6 @@ export function ModalProveedor({ proveedores, contactos, tipos, tipoSugerido, on
   /** Contacto nuevo abierto en su ventana (uno nuevo o uno ya agregado que se edita). */
   const [editando, setEditando] = useState<BorradorContacto | null>(null)
   const [mostrar, setMostrar] = useState(false)
-  const [enviando, setEnviando] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const set = (parcial: Partial<BorradorProveedor>) => setP((x) => ({ ...x, ...parcial }))
   const faltan = faltantesProveedor(p, proveedores)
@@ -172,20 +175,7 @@ export function ModalProveedor({ proveedores, contactos, tipos, tipoSugerido, on
     setEditando(null)
   }
 
-  const crear = async () => {
-    if (faltan.length > 0) {
-      setMostrar(true)
-      return
-    }
-    setEnviando(true)
-    setError(null)
-    try {
-      onCreado(await crearProveedor(p))
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e))
-      setEnviando(false)
-    }
-  }
+  const listo = () => (faltan.length > 0 ? setMostrar(true) : onListo(p))
 
   const opContactos = contactos.map((c) => ({ id: c.id, nombre: c.nombre, detalle: detalleContacto(c) }))
 
@@ -198,20 +188,12 @@ export function ModalProveedor({ proveedores, contactos, tipos, tipoSugerido, on
             <i className="fas fa-building-circle-check" style={{ color: '#7f5347' }} aria-hidden /> Agregar proveedor
           </>
         }
-        subtitulo="Se crea Activo en ✋ Proveedores y queda asignado a esta carga."
-        onCerrar={() => !enviando && onCerrar()}
+        subtitulo="Queda asignado ya, pero se crea en ✋ Proveedores (Activo) recién cuando confirmes la carga."
+        onCerrar={onCerrar}
         textoCerrar="Cancelar"
         pie={
-          <button type="button" className="btn btn-green" onClick={crear} disabled={enviando}>
-            {enviando ? (
-              <>
-                <i className="fas fa-circle-notch fa-spin" aria-hidden /> Creando…
-              </>
-            ) : (
-              <>
-                <i className="fas fa-check" aria-hidden /> Crear y asignar
-              </>
-            )}
+          <button type="button" className="btn btn-green" onClick={listo}>
+            <i className="fas fa-check" aria-hidden /> Usar este proveedor
           </button>
         }
       >
@@ -337,12 +319,6 @@ export function ModalProveedor({ proveedores, contactos, tipos, tipoSugerido, on
         </div>
 
         {mostrar && faltan.length > 0 && <Faltan lista={faltan} />}
-        {error && (
-          <div className="aviso aviso--error" style={{ marginTop: 12 }}>
-            <i className="fas fa-circle-exclamation" aria-hidden />
-            <span>No se pudo crear el proveedor: {error}</span>
-          </div>
-        )}
       </Modal>
 
       {editando && <ModalContacto inicial={editando} onListo={guardarContacto} onCerrar={() => setEditando(null)} />}

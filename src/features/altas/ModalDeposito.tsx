@@ -3,7 +3,7 @@ import type { Cultivo, Deposito } from '@/types'
 import { Modal } from '@/components/ui/Modal'
 import { SelectorBuscable, type OpcionSelector } from '@/components/ui/SelectorBuscable'
 import { SelectorUbicacion } from '@/components/ui/SelectorUbicacion'
-import { crearDeposito, type BorradorDeposito, type Silo } from '@/services/monday/altas'
+import type { BorradorDeposito, DepositoPendiente, Silo } from '@/services/monday/altas'
 
 interface Props {
   cultivos: Cultivo[]
@@ -11,19 +11,22 @@ interface Props {
   cultivoInicial: string | null
   silos: Silo[]
   depositos: Deposito[]
-  onCreado: (d: Deposito) => void
+  /** Depósito nuevo ya cargado antes, para editarlo. */
+  inicial?: BorradorDeposito | null
+  /** Datos validados. No se crea nada: se crea al confirmar la cosecha que lo usa. */
+  onListo: (d: DepositoPendiente) => void
   onCerrar: () => void
 }
 
 /**
- * Alta de un destino de granos en depósito que no existe. Nace Activo, con el nombre de la
- * convención del tablero ("Cultivo - Silo"), y queda asignado a la carga.
+ * Datos de un destino de granos en depósito que no existe. Esta ventana NO crea nada: el depósito
+ * (Activo, "Cultivo - Silo") se crea recién al confirmar la cosecha que lo usa.
  */
-export function ModalDeposito({ cultivos, cultivoInicial, silos, depositos, onCreado, onCerrar }: Props) {
-  const [d, setD] = useState<BorradorDeposito>({ cultivoId: cultivoInicial, siloId: null, ubicacion: null })
+export function ModalDeposito({ cultivos, cultivoInicial, silos, depositos, inicial, onListo, onCerrar }: Props) {
+  const [d, setD] = useState<BorradorDeposito>(
+    () => inicial ?? { cultivoId: cultivoInicial, siloId: null, ubicacion: null },
+  )
   const [mostrar, setMostrar] = useState(false)
-  const [enviando, setEnviando] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const cultivo = cultivos.find((c) => c.id === d.cultivoId) ?? null
   const silo = silos.find((s) => s.id === d.siloId) ?? null
@@ -41,19 +44,12 @@ export function ModalDeposito({ cultivos, cultivoInicial, silos, depositos, onCr
     ...(repetido ? [`Ya existe "${repetido.nombre}": elegilo de la lista en vez de crearlo.`] : []),
   ]
 
-  const crear = async () => {
+  const listo = () => {
     if (faltan.length > 0 || !cultivo || !silo) {
       setMostrar(true)
       return
     }
-    setEnviando(true)
-    setError(null)
-    try {
-      onCreado(await crearDeposito(d, cultivo, silo))
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e))
-      setEnviando(false)
-    }
+    onListo({ borrador: d, cultivo: { id: cultivo.id, nombre: cultivo.nombre }, silo: { id: silo.id, nombre: silo.nombre } })
   }
 
   const opCultivos: OpcionSelector[] = cultivos.map((c) => ({ id: c.id, nombre: c.nombre, chip: c.tipo || undefined, chipClase: 'chip--campo' }))
@@ -67,20 +63,12 @@ export function ModalDeposito({ cultivos, cultivoInicial, silos, depositos, onCr
           <i className="fas fa-warehouse" style={{ color: '#0e7c86' }} aria-hidden /> Agregar destino granos en depósito
         </>
       }
-      subtitulo="Se crea Activo en 🤖 Granos en Deposito y queda asignado a esta cosecha."
-      onCerrar={() => !enviando && onCerrar()}
+      subtitulo="Queda asignado ya, pero se crea en 🤖 Granos en Deposito (Activo) recién cuando confirmes la cosecha."
+      onCerrar={onCerrar}
       textoCerrar="Cancelar"
       pie={
-        <button type="button" className="btn btn-green" onClick={crear} disabled={enviando}>
-          {enviando ? (
-            <>
-              <i className="fas fa-circle-notch fa-spin" aria-hidden /> Creando…
-            </>
-          ) : (
-            <>
-              <i className="fas fa-check" aria-hidden /> Crear y asignar
-            </>
-          )}
+        <button type="button" className="btn btn-green" onClick={listo}>
+          <i className="fas fa-check" aria-hidden /> Usar este destino
         </button>
       }
     >
@@ -95,7 +83,7 @@ export function ModalDeposito({ cultivos, cultivoInicial, silos, depositos, onCr
           />
           {cultivoInicial && d.cultivoId !== cultivoInicial && (
             <span className="ig-hint" style={{ color: '#93370d' }}>
-              No es el cultivo de la cosecha: el depósito se crea, pero no se va a poder asignar a esta carga.
+              No es el cultivo de la cosecha: así no se va a poder asignar a esta carga.
             </span>
           )}
         </div>
@@ -142,12 +130,6 @@ export function ModalDeposito({ cultivos, cultivoInicial, silos, depositos, onCr
         <div className="aviso aviso--warn" style={{ marginTop: 12 }}>
           <i className="fas fa-triangle-exclamation" aria-hidden />
           <span>Ya existe "{repetido.nombre}": elegilo de la lista en vez de crearlo.</span>
-        </div>
-      )}
-      {error && (
-        <div className="aviso aviso--error" style={{ marginTop: 12 }}>
-          <i className="fas fa-circle-exclamation" aria-hidden />
-          <span>No se pudo crear el depósito: {error}</span>
         </div>
       )}
     </Modal>

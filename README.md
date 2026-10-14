@@ -306,9 +306,16 @@ texto y por Cultivo, Campo, Lote y Campaña combinados, y devuelve las 30 más n
 
 ### Altas al vuelo: proveedor, contacto y destino
 
-Si el proveedor del flete o el destino de granos no existen, se crean desde el mismo formulario
-con **"¿No está? Agregar … nuevo"**, en una ventana emergente, y quedan asignados al confirmar
+Si el proveedor del flete o el destino de granos no existen, se cargan desde el mismo formulario
+con **"¿No está? Agregar … nuevo"**, en una ventana emergente, y quedan elegidos
 ([`src/features/altas`](src/features/altas)).
+
+**Nada se crea al confirmar la ventana.** Lo cargado queda pendiente, con un id provisorio, y se
+muestra como "Nuevo" en el selector. Recién al confirmar la cosecha se crea, en este orden: el
+proveedor, sus contactos nuevos, el destino y por último la cosecha, ya conectada a los ids reales.
+Sólo se crea lo que la cosecha usa: un proveedor nuevo que quedó cargado pero al final el flete es
+propio no se crea. Si la cosecha falla después de crear el proveedor o el destino, esos quedan
+como reales y al reintentar no se duplican.
 
 | Alta | Tablero | Obligatorio | Opcional | Nace con |
 | --- | --- | --- | --- | --- |
@@ -329,3 +336,4 @@ con **"¿No está? Agregar … nuevo"**, en una ventana emergente, y quedan asig
   como pide su política de uso.
 - Lo creado se suma a los catálogos de la app: el proveedor nuevo aparece también en las otras
   operaciones sin recargar.
+- Si un id provisorio llegara a la escritura de la cosecha, se corta antes de escribir.

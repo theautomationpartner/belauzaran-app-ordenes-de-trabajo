@@ -195,3 +195,13 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Lo que se creó además de la cosecha (proveedor, destino) y avisos. */
+.exito-extras {
+  margin: 0;
+  padding-left: 18px;
+  max-width: 520px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-dark);
+}

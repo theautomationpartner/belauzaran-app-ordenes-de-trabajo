@@ -13,6 +13,7 @@ import type {
 } from '@/types'
 import { aNumero, aTextoMonday, normalizar } from './format'
 import { buscar } from './orden'
+import { esNuevo } from './altas'
 import {
   COL_COSECHA,
   PROVEEDOR_TIPO_FLETES,
@@ -169,9 +170,15 @@ export function faltantesCosecha(b: BorradorCosecha, ctx: ContextoCosecha): stri
   return faltan
 }
 
-const conexion = (...ids: (string | null)[]) => ({
-  item_ids: ids.filter((id): id is string => Boolean(id)).map(Number),
-})
+/**
+ * Valor de una conexión. Un id provisorio (algo cargado en una ventana de alta que todavía no se
+ * creó) nunca tiene que llegar acá: se corta antes de escribir una conexión rota.
+ */
+const conexion = (...ids: (string | null)[]) => {
+  const validos = ids.filter((id): id is string => Boolean(id))
+  if (validos.some(esNuevo)) throw new Error('Hay un proveedor o destino nuevo que todavía no se creó.')
+  return { item_ids: validos.map(Number) }
+}
 
 /**
  * Columnas de la cosecha nueva. Van TODAS en el alta, en una sola escritura: la automatización

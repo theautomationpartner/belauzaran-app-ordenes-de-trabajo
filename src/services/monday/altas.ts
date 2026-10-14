@@ -164,6 +164,13 @@ export interface BorradorDeposito {
   ubicacion: Ubicacion | null
 }
 
+/** Depósito ya validado en su ventana, a la espera de que se confirme la carga para crearse. */
+export interface DepositoPendiente {
+  borrador: BorradorDeposito
+  cultivo: ItemBasico
+  silo: ItemBasico
+}
+
 /**
  * Crea un depósito de granos Activo, con el nombre de la convención del tablero
  * ("Girasol - Rural Ceres SA" = cultivo - silo).

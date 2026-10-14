@@ -12,6 +12,15 @@ export interface Ubicacion {
   address: string
 }
 
+/**
+ * Ids provisorios de lo que se cargó en una ventana de alta pero todavía no existe en monday. Se
+ * usan como un item más en los selectores y en las validaciones; al confirmar la carga se crean de
+ * verdad y se reemplazan por el id real antes de escribir nada que los conecte.
+ */
+export const ID_PROVEEDOR_NUEVO = 'nuevo-proveedor'
+export const ID_DEPOSITO_NUEVO = 'nuevo-deposito'
+export const esNuevo = (id: string | null | undefined): boolean => Boolean(id?.startsWith('nuevo-'))
+
 /* ===== CUIT ===== */
 
 const soloDigitos = (s: string) => s.replace(/\D/g, '')

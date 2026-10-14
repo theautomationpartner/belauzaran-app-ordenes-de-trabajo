@@ -7,6 +7,7 @@ import { SelectorBuscable, type OpcionSelector } from '@/components/ui/SelectorB
 import { SelectorMultiple } from '@/components/ui/SelectorMultiple'
 import { aNumero, hectareas } from '@/lib/format'
 import { buscar, hectareasDeLote } from '@/lib/orden'
+import { esNuevo } from '@/lib/altas'
 import {
   depositosAptos,
   lotesDeCampo,
@@ -25,6 +26,9 @@ interface Props {
   ctx: ContextoCosecha
   /** Número del primer bloque: el formulario va debajo de la elección de Crear / Duplicar. */
   desde: number
+  /** Hay un proveedor / destino nuevo cargado, que se crea al confirmar la cosecha. */
+  proveedorNuevo: boolean
+  depositoNuevo: boolean
   /** Abre el alta de un destino de granos que no está en la lista. */
   onAgregarDeposito: () => void
   /** Abre el alta de un proveedor de fletes que no está en la lista. */
@@ -58,7 +62,16 @@ function Problema({ children }: { children: ReactNode }) {
  * de ese campo; el destino se habilita después del cultivo y sólo ofrece depósitos de ese cultivo;
  * el transporte abre maquinarias (Flete Propio) o proveedor de fletes (Flete Contratado).
  */
-export function FormCosecha({ borrador: b, onCambio, ctx, desde, onAgregarDeposito, onAgregarProveedor }: Props) {
+export function FormCosecha({
+  borrador: b,
+  onCambio,
+  ctx,
+  desde,
+  proveedorNuevo,
+  depositoNuevo,
+  onAgregarDeposito,
+  onAgregarProveedor,
+}: Props) {
   const { catalogos, depositos, maquinariaMultiple } = ctx
   const [tiposMaq, setTiposMaq] = useState<string[]>([])
   const [clasifMaq, setClasifMaq] = useState<string[]>([])
@@ -90,18 +103,17 @@ export function FormCosecha({ borrador: b, onCambio, ctx, desde, onAgregarDeposi
     detalle: `${c.lotes.length} lote${c.lotes.length === 1 ? '' : 's'}`,
   }))
   const opLotes = lotes.map((l) => ({ id: l.id, nombre: l.nombre, detalle: hectareas(hectareasDeLote(l)) }))
-  const opDepositos: OpcionSelector[] = aptos.map((d) => ({
-    id: d.id,
-    nombre: d.nombre,
-    chip: d.estado && d.estado !== 'Activo' ? d.estado : undefined,
-    chipClase: 'chip--naranja',
-  }))
+  /* Lo nuevo (todavía sin crear) se distingue en la lista: se crea recién al confirmar. */
+  const chipDe = (id: string, estado: string): Pick<OpcionSelector, 'chip' | 'chipClase' | 'detalle'> =>
+    esNuevo(id)
+      ? { chip: 'Nuevo', chipClase: 'chip--violeta', detalle: 'Se crea al confirmar la cosecha' }
+      : { chip: estado && estado !== 'Activo' ? estado : undefined, chipClase: 'chip--naranja' }
+  const opDepositos: OpcionSelector[] = aptos.map((d) => ({ id: d.id, nombre: d.nombre, ...chipDe(d.id, d.estado) }))
   const opFletes: OpcionSelector[] = fletes.map((p) => ({
     id: p.id,
     nombre: p.nombre,
     detalle: p.cuit ? `CUIT ${p.cuit}` : undefined,
-    chip: p.estado && p.estado !== 'Activo' ? p.estado : undefined,
-    chipClase: 'chip--naranja',
+    ...chipDe(p.id, p.estado),
   }))
 
   const universoMaquinaria: ResultadoBusqueda[] = useMemo(
@@ -260,7 +272,10 @@ export function FormCosecha({ borrador: b, onCambio, ctx, desde, onAgregarDeposi
           placeholder="Elegí el depósito…"
           vacio={cultivo ? `No hay depósitos de ${cultivo.nombre}.` : 'Elegí primero el cultivo.'}
         />
-        <BotonAgregar texto="¿No está? Agregar destino nuevo" onClick={onAgregarDeposito} />
+        <BotonAgregar
+          texto={depositoNuevo ? 'Editar el destino nuevo' : '¿No está? Agregar destino nuevo'}
+          onClick={onAgregarDeposito}
+        />
         {depositoNoApto && (
           <Problema>
             El destino "{buscar(depositos, b.depositoId)?.nombre ?? 'elegido'}" no recibe{' '}
@@ -369,7 +384,10 @@ export function FormCosecha({ borrador: b, onCambio, ctx, desde, onAgregarDeposi
               />
               <span className="ig-hint">Sólo aparecen los proveedores de tipo Fletes.</span>
             </div>
-            <BotonAgregar texto="¿No está? Agregar proveedor nuevo" onClick={onAgregarProveedor} />
+            <BotonAgregar
+              texto={proveedorNuevo ? 'Editar el proveedor nuevo' : '¿No está? Agregar proveedor nuevo'}
+              onClick={onAgregarProveedor}
+            />
             {provNoFlete && (
               <Problema>
                 "{provElegido?.nombre}" no es un proveedor de Fletes. Elegí uno de la lista.

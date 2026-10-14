@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { BorradorCosecha, Catalogos, CosechaExistente, Deposito } from '@/types'
+import type { BorradorCosecha, Catalogos, CosechaExistente, Deposito, Proveedor } from '@/types'
 import { Opcion } from '@/components/ui/Opcion'
 import { Seccion } from '@/components/ui/Seccion'
-import { fecha } from '@/lib/format'
+import { fecha, plural } from '@/lib/format'
 import {
   borradorCosechaVacio,
   cambiarBorrador,
@@ -11,6 +11,7 @@ import {
   nombreCosecha,
   type ContextoCosecha,
 } from '@/lib/cosecha'
+import { ID_DEPOSITO_NUEVO, ID_PROVEEDOR_NUEVO, type BorradorProveedor } from '@/lib/altas'
 import {
   crearCosecha,
   duplicarCosecha,
@@ -18,12 +19,17 @@ import {
   traerDatosCosecha,
   type DatosCosecha,
 } from '@/services/monday/cosecha'
-import { PROVEEDOR_TIPO_FLETES, TABLERO_COSECHA } from '@/services/monday/columns'
+import { crearDeposito, crearProveedor, type DepositoPendiente } from '@/services/monday/altas'
+import {
+  PROVEEDOR_ACTIVO,
+  PROVEEDOR_TIPO_FLETES,
+  TABLERO_COSECHA,
+  TRANSPORTE_CONTRATADO,
+} from '@/services/monday/columns'
 import { FormCosecha } from './FormCosecha'
 import { BuscadorCosechas } from './BuscadorCosechas'
 import { ModalProveedor } from '@/features/altas/ModalProveedor'
 import { ModalDeposito } from '@/features/altas/ModalDeposito'
-import type { ResultadoProveedor } from '@/services/monday/altas'
 
 type Modo = 'CREAR' | 'DUPLICAR'
 
@@ -33,8 +39,8 @@ interface Props {
   /** Ver `FlujoComprobante`: avisa a la app si hay algo a medio cargar. */
   onPendiente?: (mensaje: string | null) => void
   /**
-   * Suma a los catálogos de la app lo que se dio de alta acá (un proveedor, sus contactos), para
-   * que aparezca en esta operación y en las demás sin recargar.
+   * Suma a los catálogos de la app lo que se crea acá (un proveedor, sus contactos), para que
+   * aparezca en esta operación y en las demás sin recargar.
    */
   onCatalogos: (cambio: (c: Catalogos) => Catalogos) => void
 }
@@ -46,10 +52,19 @@ type EstadoDatos =
 
 type EstadoEnvio =
   | { fase: 'inactivo' }
-  | { fase: 'enviando' }
+  /** `etapa` dice qué se está creando: proveedor, destino o la cosecha. */
+  | { fase: 'enviando'; etapa: string }
   | { fase: 'error'; mensaje: string }
   /** Todo escrito. En una duplicada, también la marca de la de origen. */
-  | { fase: 'terminado'; modo: Modo; itemId: string; nombre: string; origen: CosechaExistente | null }
+  | {
+      fase: 'terminado'
+      modo: Modo
+      itemId: string
+      nombre: string
+      origen: CosechaExistente | null
+      /** Lo que se creó además de la cosecha (proveedor, contactos, destino) y avisos. */
+      extras: string[]
+    }
   /** La duplicada se creó, pero falta marcar la de origen como "Duplicado". */
   | {
       fase: 'incompleto'
@@ -58,14 +73,21 @@ type EstadoEnvio =
       origen: CosechaExistente
       error: string
       reintentando: boolean
+      extras: string[]
     }
 
 const enlace = (itemId: string) => `https://belauzaransa.monday.com/boards/${TABLERO_COSECHA}/pulses/${itemId}`
+const mensaje = (e: unknown) => (e instanceof Error ? e.message : String(e))
+const porNombre = (a: { nombre: string }, b: { nombre: string }) => a.nombre.localeCompare(b.nombre, 'es')
 
 /**
  * Operación "Registrar Cosecha": crear una cosecha nueva o duplicar una existente (arrancar el
  * formulario con sus datos, editar lo que cambie y crearla como una nueva). Las reglas son las
  * mismas en los dos casos; ver `lib/cosecha.ts`.
+ *
+ * Si el proveedor del flete o el destino no existen, se cargan en una ventana y quedan elegidos,
+ * pero NO se crean en monday hasta que se confirma la cosecha. Mientras tanto viven acá como
+ * "pendientes" con un id provisorio, y se muestran y validan como cualquier otro.
  */
 export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: Props) {
   const [datos, setDatos] = useState<EstadoDatos>({ fase: 'cargando' })
@@ -77,21 +99,52 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: 
   const [mostrarFaltantes, setMostrarFaltantes] = useState(false)
   /** Ventana de alta abierta. */
   const [alta, setAlta] = useState<'proveedor' | 'deposito' | null>(null)
-  /** Resultado de la última alta, para avisarlo arriba del formulario. */
+  /** Proveedor y destino cargados en su ventana, a crear cuando se confirme la cosecha. */
+  const [proveedorNuevo, setProveedorNuevo] = useState<BorradorProveedor | null>(null)
+  const [depositoNuevo, setDepositoNuevo] = useState<DepositoPendiente | null>(null)
+  /** Aviso de lo último que se cargó en una ventana. */
   const [avisoAlta, setAvisoAlta] = useState<{ tipo: 'ok' | 'warn'; texto: string } | null>(null)
 
   const cargar = useCallback(() => {
     setDatos({ fase: 'cargando' })
     traerDatosCosecha()
       .then((d) => setDatos({ fase: 'listo', datos: d }))
-      .catch((e: unknown) => setDatos({ fase: 'error', mensaje: e instanceof Error ? e.message : String(e) }))
+      .catch((e: unknown) => setDatos({ fase: 'error', mensaje: mensaje(e) }))
   }, [])
   useEffect(() => cargar(), [cargar])
 
-  const ctx: ContextoCosecha | null = useMemo(
-    () => (datos.fase === 'listo' ? { catalogos, ...datos.datos } : null),
-    [datos, catalogos],
-  )
+  /* Los pendientes entran a los catálogos con su id provisorio: así el selector los ofrece, el
+     formulario los muestra elegidos y las validaciones (tipo Fletes, depósito del cultivo) los
+     tratan igual que a uno real. */
+  const ctx: ContextoCosecha | null = useMemo(() => {
+    if (datos.fase !== 'listo') return null
+    const proveedores: Proveedor[] = proveedorNuevo
+      ? [
+          ...catalogos.proveedores,
+          {
+            id: ID_PROVEEDOR_NUEVO,
+            nombre: proveedorNuevo.nombreCompleto.trim(),
+            estado: PROVEEDOR_ACTIVO,
+            cuit: proveedorNuevo.cuit,
+            tipos: proveedorNuevo.tipos,
+            contactoIds: proveedorNuevo.contactoIds,
+          },
+        ]
+      : catalogos.proveedores
+    const depositos: Deposito[] = depositoNuevo
+      ? [
+          ...datos.datos.depositos,
+          {
+            id: ID_DEPOSITO_NUEVO,
+            nombre: `${depositoNuevo.cultivo.nombre} - ${depositoNuevo.silo.nombre}`,
+            cultivoIds: [depositoNuevo.cultivo.id],
+            siloIds: [depositoNuevo.silo.id],
+            estado: 'Activo',
+          },
+        ]
+      : datos.datos.depositos
+    return { ...datos.datos, catalogos: { ...catalogos, proveedores }, depositos }
+  }, [datos, catalogos, proveedorNuevo, depositoNuevo])
 
   const pendiente =
     envio.fase === 'enviando'
@@ -136,48 +189,32 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: 
     window.scrollTo({ top: 0 })
   }
 
-  const proveedorCreado = (r: ResultadoProveedor) => {
-    const porNombre = (a: { nombre: string }, b: { nombre: string }) => a.nombre.localeCompare(b.nombre, 'es')
-    onCatalogos((c) => ({
-      ...c,
-      proveedores: [...c.proveedores, r.proveedor].sort(porNombre),
-      contactos: [...c.contactos, ...r.contactos].sort(porNombre),
-    }))
+  /** Proveedor cargado en la ventana: queda elegido, todavía sin crear. */
+  const proveedorListo = (p: BorradorProveedor) => {
+    setProveedorNuevo(p)
     setAlta(null)
-    const esFlete = r.proveedor.tipos.includes(PROVEEDOR_TIPO_FLETES)
-    if (esFlete) setBorrador((b) => ({ ...b, proveedorId: r.proveedor.id }))
-    const contactos = r.contactos.length ? ` con ${r.contactos.length} contacto${r.contactos.length === 1 ? '' : 's'} nuevo${r.contactos.length === 1 ? '' : 's'}` : ''
+    const esFlete = p.tipos.includes(PROVEEDOR_TIPO_FLETES)
+    if (esFlete) setBorrador((b) => ({ ...b, proveedorId: ID_PROVEEDOR_NUEVO }))
+    else setBorrador((b) => (b.proveedorId === ID_PROVEEDOR_NUEVO ? { ...b, proveedorId: null } : b))
     setAvisoAlta(
-      r.fallidos.length > 0
-        ? {
-            tipo: 'warn',
-            texto: `Se creó "${r.proveedor.nombre}"${contactos}, pero no se pudo crear ${r.fallidos.map((f) => f.contacto.nombre).join(', ')}: cargalo en ✋ Contactos. (${r.fallidos[0].error})`,
-          }
-        : esFlete
-          ? { tipo: 'ok', texto: `Se creó el proveedor "${r.proveedor.nombre}"${contactos} y quedó asignado.` }
-          : {
-              tipo: 'warn',
-              texto: `Se creó "${r.proveedor.nombre}"${contactos}, pero no es de tipo Fletes, así que no se puede asignar a este flete.`,
-            },
+      esFlete
+        ? { tipo: 'ok', texto: `"${p.nombreCompleto.trim()}" quedó elegido. Se crea en monday cuando confirmes la cosecha.` }
+        : { tipo: 'warn', texto: `"${p.nombreCompleto.trim()}" no es de tipo Fletes, así que no se puede usar en este flete.` },
     )
   }
 
-  const depositoCreado = (d: Deposito) => {
-    setDatos((x) =>
-      x.fase === 'listo'
-        ? {
-            fase: 'listo',
-            datos: { ...x.datos, depositos: [...x.datos.depositos, d].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')) },
-          }
-        : x,
-    )
+  /** Destino cargado en la ventana: queda elegido si es del cultivo de la cosecha, sin crear. */
+  const depositoListo = (d: DepositoPendiente) => {
+    setDepositoNuevo(d)
     setAlta(null)
-    const apto = borrador.cultivoId != null && d.cultivoIds.includes(borrador.cultivoId)
-    if (apto) setBorrador((b) => ({ ...b, depositoId: d.id }))
+    const apto = borrador.cultivoId === d.cultivo.id
+    const nombre = `${d.cultivo.nombre} - ${d.silo.nombre}`
+    if (apto) setBorrador((b) => ({ ...b, depositoId: ID_DEPOSITO_NUEVO }))
+    else setBorrador((b) => (b.depositoId === ID_DEPOSITO_NUEVO ? { ...b, depositoId: null } : b))
     setAvisoAlta(
       apto
-        ? { tipo: 'ok', texto: `Se creó el destino "${d.nombre}" y quedó asignado.` }
-        : { tipo: 'warn', texto: `Se creó "${d.nombre}", pero es de otro cultivo, así que no se asignó a esta cosecha.` },
+        ? { tipo: 'ok', texto: `"${nombre}" quedó elegido. Se crea en monday cuando confirmes la cosecha.` }
+        : { tipo: 'warn', texto: `"${nombre}" es de otro cultivo, así que no se puede usar en esta cosecha.` },
     )
   }
 
@@ -187,35 +224,95 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: 
     setBorrador(borradorCosechaVacio())
     setMostrarFaltantes(false)
     setEnvio({ fase: 'inactivo' })
+    setProveedorNuevo(null)
+    setDepositoNuevo(null)
+    setAvisoAlta(null)
   }
 
   const faltantes = ctx ? faltantesCosecha(borrador, ctx) : []
   const listoParaForm = modo === 'CREAR' || (modo === 'DUPLICAR' && origen != null)
   const bloqueado = !listoParaForm || faltantes.length > 0
 
+  /**
+   * Confirma la cosecha. Recién acá se crea lo pendiente, en este orden: el proveedor (y sus
+   * contactos), el destino y por último la cosecha, que ya los conecta con sus ids reales.
+   *
+   * Sólo se crea lo pendiente que la cosecha USA: un proveedor cargado y después reemplazado (o
+   * que quedó de un flete contratado cuando al final es propio) no se crea.
+   *
+   * Cada cosa creada se guarda en el momento como real: si después falla la cosecha, reintentar no
+   * vuelve a crear el proveedor ni el destino.
+   */
   const crear = async () => {
     if (!ctx || bloqueado) {
       setMostrarFaltantes(true)
       return
     }
-    const nombre = nombreCosecha(borrador, catalogos)
-    const columnas = columnasCosecha(borrador)
-    setEnvio({ fase: 'enviando' })
+    let b = borrador
+    const extras: string[] = []
+    try {
+      if (b.transporte === TRANSPORTE_CONTRATADO && b.proveedorId === ID_PROVEEDOR_NUEVO && proveedorNuevo) {
+        setEnvio({ fase: 'enviando', etapa: 'Creando el proveedor…' })
+        const r = await crearProveedor(proveedorNuevo)
+        onCatalogos((c) => ({
+          ...c,
+          proveedores: [...c.proveedores, r.proveedor].sort(porNombre),
+          contactos: [...c.contactos, ...r.contactos].sort(porNombre),
+        }))
+        b = { ...b, proveedorId: r.proveedor.id }
+        setBorrador(b)
+        setProveedorNuevo(null)
+        extras.push(
+          `Se creó el proveedor "${r.proveedor.nombre}"` +
+            (r.contactos.length ? ` con ${plural(r.contactos.length, 'contacto nuevo', 'contactos nuevos')}.` : '.'),
+        )
+        if (r.fallidos.length > 0) {
+          extras.push(
+            `No se pudo crear ${r.fallidos.map((f) => `"${f.contacto.nombre} ${f.contacto.apellido}"`).join(', ')}: cargalo a mano en ✋ Contactos.`,
+          )
+        }
+      }
+
+      if (b.depositoId === ID_DEPOSITO_NUEVO && depositoNuevo) {
+        setEnvio({ fase: 'enviando', etapa: 'Creando el destino de granos…' })
+        const d = await crearDeposito(depositoNuevo.borrador, depositoNuevo.cultivo, depositoNuevo.silo)
+        setDatos((x) =>
+          x.fase === 'listo' ? { fase: 'listo', datos: { ...x.datos, depositos: [...x.datos.depositos, d].sort(porNombre) } } : x,
+        )
+        b = { ...b, depositoId: d.id }
+        setBorrador(b)
+        setDepositoNuevo(null)
+        extras.push(`Se creó el destino "${d.nombre}".`)
+      }
+    } catch (e: unknown) {
+      setEnvio({
+        fase: 'error',
+        mensaje: `${mensaje(e)}${extras.length ? ` (${extras.join(' ')} La cosecha todavía no se creó: reintentá.)` : ' No se creó nada: reintentá.'}`,
+      })
+      return
+    }
+
+    const nombre = nombreCosecha(b, catalogos)
+    const columnas = columnasCosecha(b)
+    setEnvio({ fase: 'enviando', etapa: 'Creando la cosecha…' })
     try {
       if (modo === 'DUPLICAR' && origen) {
         const r = await duplicarCosecha(nombre, columnas, origen.id)
         setEnvio(
           r.origenMarcado
-            ? { fase: 'terminado', modo: 'DUPLICAR', itemId: r.itemId, nombre, origen }
-            : { fase: 'incompleto', itemId: r.itemId, nombre, origen, error: r.error ?? '', reintentando: false },
+            ? { fase: 'terminado', modo: 'DUPLICAR', itemId: r.itemId, nombre, origen, extras }
+            : { fase: 'incompleto', itemId: r.itemId, nombre, origen, error: r.error ?? '', reintentando: false, extras },
         )
       } else {
         const itemId = await crearCosecha(nombre, columnas)
-        setEnvio({ fase: 'terminado', modo: 'CREAR', itemId, nombre, origen: null })
+        setEnvio({ fase: 'terminado', modo: 'CREAR', itemId, nombre, origen: null, extras })
       }
     } catch (e: unknown) {
-      // Falló el alta: no se creó nada y la original no se tocó. Se puede volver a intentar.
-      setEnvio({ fase: 'error', mensaje: e instanceof Error ? e.message : String(e) })
+      // La cosecha no se creó y la original no se tocó. Lo que se creó antes ya quedó como real.
+      setEnvio({
+        fase: 'error',
+        mensaje: `${mensaje(e)}${extras.length ? ` (${extras.join(' ')} Ya quedó elegido: al reintentar no se vuelve a crear.)` : ''}`,
+      })
     }
   }
 
@@ -224,9 +321,16 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: 
     setEnvio({ ...envio, reintentando: true })
     try {
       await marcarOrigenDuplicado(envio.origen.id)
-      setEnvio({ fase: 'terminado', modo: 'DUPLICAR', itemId: envio.itemId, nombre: envio.nombre, origen: envio.origen })
+      setEnvio({
+        fase: 'terminado',
+        modo: 'DUPLICAR',
+        itemId: envio.itemId,
+        nombre: envio.nombre,
+        origen: envio.origen,
+        extras: envio.extras,
+      })
     } catch (e: unknown) {
-      setEnvio({ ...envio, reintentando: false, error: e instanceof Error ? e.message : String(e) })
+      setEnvio({ ...envio, reintentando: false, error: mensaje(e) })
     }
   }
 
@@ -254,6 +358,13 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: 
                   )}{' '}
                   La automatización se encarga del resto.
                 </p>
+                {envio.extras.length > 0 && (
+                  <ul className="exito-extras">
+                    {envio.extras.map((x) => (
+                      <li key={x}>{x}</li>
+                    ))}
+                  </ul>
+                )}
                 <div className="acciones-bloque exito-acciones">
                   <button type="button" className="btn btn-primary" onClick={reiniciar}>
                     <i className="fas fa-plus" aria-hidden /> Registrar otra cosecha
@@ -302,13 +413,18 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: 
   }
 
   const enviando = envio.fase === 'enviando'
+  /* Lo nuevo que efectivamente se va a crear al confirmar, para decirlo antes del botón. */
+  const seCreaProveedor = borrador.transporte === TRANSPORTE_CONTRATADO && borrador.proveedorId === ID_PROVEEDOR_NUEVO
+  const seCreaDeposito = borrador.depositoId === ID_DEPOSITO_NUEVO
+  const tambien = [seCreaProveedor && 'el proveedor nuevo', seCreaDeposito && 'el destino nuevo'].filter(Boolean)
   const mensajePie = enviando
-    ? 'Creando la cosecha en monday…'
+    ? envio.etapa
     : !modo
       ? 'Elegí si vas a crear o duplicar una cosecha.'
       : modo === 'DUPLICAR' && !origen
         ? 'Buscá y elegí la cosecha a duplicar.'
-        : faltantes[0] ?? 'Todo listo para crear la cosecha.'
+        : faltantes[0] ??
+          (tambien.length ? `Todo listo. Al confirmar se crea también ${tambien.join(' y ')}.` : 'Todo listo para crear la cosecha.')
 
   return (
     <div className="app">
@@ -406,6 +522,8 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: 
               onCambio={cambiar}
               ctx={ctx}
               desde={2}
+              proveedorNuevo={proveedorNuevo != null}
+              depositoNuevo={depositoNuevo != null}
               onAgregarDeposito={() => setAlta('deposito')}
               onAgregarProveedor={() => setAlta('proveedor')}
             />
@@ -417,7 +535,8 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: 
               contactos={catalogos.contactos}
               tipos={datos.datos.alta.tiposProveedor}
               tipoSugerido={PROVEEDOR_TIPO_FLETES}
-              onCreado={proveedorCreado}
+              inicial={proveedorNuevo}
+              onListo={proveedorListo}
               onCerrar={() => setAlta(null)}
             />
           )}
@@ -427,7 +546,8 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: 
               cultivoInicial={borrador.cultivoId}
               silos={datos.datos.alta.silos}
               depositos={datos.datos.depositos}
-              onCreado={depositoCreado}
+              inicial={depositoNuevo?.borrador}
+              onListo={depositoListo}
               onCerrar={() => setAlta(null)}
             />
           )}
