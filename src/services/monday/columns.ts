@@ -283,7 +283,7 @@ export const COL_COSECHA = {
   cartaPorte: 'text_mm1fnckc',
   km: 'numeric_mm1fe2f7',
   ctg: 'text_mm3kavqa',
-  /** 🤖 Estado de Registro. La duplicada nace en "Registrar DUP"; el alta normal, sin estado. */
+  /** 🤖 Estado de Registro. La app no lo escribe: tanto el alta como la duplicada nacen sin estado. */
   estadoRegistro: 'color_mm444rn8',
   /** 🤖Estado Duplicado. La cosecha de la que se copiaron los datos queda en "Duplicado". */
   estadoDuplicado: 'color_mm59ytz6',
@@ -293,7 +293,6 @@ export const COL_COSECHA = {
 
 export const TRANSPORTE_PROPIO = 'Flete Propio'
 export const TRANSPORTE_CONTRATADO = 'Flete Contratado'
-export const COSECHA_REGISTRAR_DUP = 'Registrar DUP'
 export const COSECHA_DUPLICADO = 'Duplicado'
 
 /** Tipo de proveedor (`COL_PROVEEDOR.tipo`) que puede hacer un flete contratado. */

@@ -8,7 +8,6 @@ import {
   COL_COSECHA,
   COL_DEPOSITO,
   COSECHA_DUPLICADO,
-  COSECHA_REGISTRAR_DUP,
   TABLERO_COSECHA,
   TABLERO_DEPOSITOS,
   TRANSPORTE_CONTRATADO,
@@ -224,19 +223,17 @@ export async function marcarOrigenDuplicado(origenId: string): Promise<void> {
 }
 
 /**
- * Crea la cosecha duplicada en "Registrar DUP" y recién después marca la de origen como
- * "Duplicado". En ese orden: si el alta falla, la de origen no queda marcada como duplicada de
- * algo que no existe. Si lo que falla es la marca, la nueva ya está y se reintenta sólo la marca.
+ * Crea la cosecha duplicada igual que una nueva —completa y sin estado: la automatización la
+ * procesa al crearse— y, sólo si el alta salió bien, marca la de origen como "Duplicado". En ese
+ * orden: si el alta falla, la de origen no queda marcada como duplicada de algo que no existe. Si
+ * lo que falla es la marca, la nueva ya está y se reintenta sólo la marca.
  */
 export async function duplicarCosecha(
   nombre: string,
   columnasItem: Record<string, unknown>,
   origenId: string,
 ): Promise<ResultadoDuplicado> {
-  const itemId = await crearItem(nombre, {
-    ...columnasItem,
-    [COL_COSECHA.estadoRegistro]: { label: COSECHA_REGISTRAR_DUP },
-  })
+  const itemId = await crearItem(nombre, columnasItem)
   try {
     await marcarOrigenDuplicado(origenId)
     return { itemId, origenMarcado: true, error: null }

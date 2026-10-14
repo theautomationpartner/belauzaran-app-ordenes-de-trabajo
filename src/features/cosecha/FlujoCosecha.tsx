@@ -188,8 +188,7 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente }: Props) {
                 </span>
                 <h2 className="exito-tit">{dup ? '¡Cosecha duplicada con éxito!' : '¡Cosecha creada con éxito!'}</h2>
                 <p className="exito-txt">
-                  Se creó <strong>{envio.nombre}</strong>
-                  {dup ? ' en "Registrar DUP"' : ''}.
+                  Se creó <strong>{envio.nombre}</strong>.
                   {dup && envio.origen && (
                     <>
                       {' '}La original ({envio.origen.codigo || envio.origen.nombre}) quedó en <strong>Duplicado</strong>.
@@ -213,7 +212,7 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente }: Props) {
                   Falta marcar la cosecha original como Duplicado
                 </div>
                 <div className="csub">
-                  La cosecha nueva ya se creó en "Registrar DUP", pero no se pudo marcar{' '}
+                  La cosecha nueva ya se creó, pero no se pudo marcar{' '}
                   {envio.origen.codigo || envio.origen.nombre} como Duplicado: {envio.error}
                 </div>
                 <div className="aviso aviso--warn" style={{ marginBottom: 14 }}>

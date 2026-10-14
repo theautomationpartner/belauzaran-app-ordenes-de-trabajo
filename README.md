@@ -295,8 +295,8 @@ arranca el formulario con los datos de otra cosecha.
 
 - **Crear:** un item con todas las columnas en **una sola escritura** y **sin estado**: la
   automatización se dispara al crearse el item y tiene que encontrarlo completo.
-- **Duplicar:** el item nuevo nace con 🤖 Estado de Registro (`color_mm444rn8`) = **Registrar DUP**
-  y, recién después, la cosecha original pasa a 🤖Estado Duplicado (`color_mm59ytz6`) =
+- **Duplicar:** el item nuevo se crea igual que uno nuevo (completo y sin estado) y, sólo si
+  el alta salió bien, la cosecha original pasa a 🤖Estado Duplicado (`color_mm59ytz6`) =
   **Duplicado**. Si esa marca falla, se reintenta sólo la marca, sin crear otra cosecha.
 
 Del transporte se escribe sólo lo del tipo elegido. Make renombra el item después.
