@@ -25,6 +25,19 @@ interface Props {
   ctx: ContextoCosecha
   /** Número del primer bloque: el formulario va debajo de la elección de Crear / Duplicar. */
   desde: number
+  /** Abre el alta de un destino de granos que no está en la lista. */
+  onAgregarDeposito: () => void
+  /** Abre el alta de un proveedor de fletes que no está en la lista. */
+  onAgregarProveedor: () => void
+}
+
+/** Botón "Agregar … nuevo" debajo de un selector, para cuando lo que se busca no existe. */
+function BotonAgregar({ texto, onClick }: { texto: string; onClick: () => void }) {
+  return (
+    <button type="button" className="btn btn-outblue btn--sm btn-agregar" onClick={onClick}>
+      <i className="fas fa-plus" aria-hidden /> {texto}
+    </button>
+  )
 }
 
 /** Aviso rojo dentro de un bloque, para combinaciones inválidas que vienen de una duplicada. */
@@ -45,7 +58,7 @@ function Problema({ children }: { children: ReactNode }) {
  * de ese campo; el destino se habilita después del cultivo y sólo ofrece depósitos de ese cultivo;
  * el transporte abre maquinarias (Flete Propio) o proveedor de fletes (Flete Contratado).
  */
-export function FormCosecha({ borrador: b, onCambio, ctx, desde }: Props) {
+export function FormCosecha({ borrador: b, onCambio, ctx, desde, onAgregarDeposito, onAgregarProveedor }: Props) {
   const { catalogos, depositos, maquinariaMultiple } = ctx
   const [tiposMaq, setTiposMaq] = useState<string[]>([])
   const [clasifMaq, setClasifMaq] = useState<string[]>([])
@@ -247,6 +260,7 @@ export function FormCosecha({ borrador: b, onCambio, ctx, desde }: Props) {
           placeholder="Elegí el depósito…"
           vacio={cultivo ? `No hay depósitos de ${cultivo.nombre}.` : 'Elegí primero el cultivo.'}
         />
+        <BotonAgregar texto="¿No está? Agregar destino nuevo" onClick={onAgregarDeposito} />
         {depositoNoApto && (
           <Problema>
             El destino "{buscar(depositos, b.depositoId)?.nombre ?? 'elegido'}" no recibe{' '}
@@ -355,6 +369,7 @@ export function FormCosecha({ borrador: b, onCambio, ctx, desde }: Props) {
               />
               <span className="ig-hint">Sólo aparecen los proveedores de tipo Fletes.</span>
             </div>
+            <BotonAgregar texto="¿No está? Agregar proveedor nuevo" onClick={onAgregarProveedor} />
             {provNoFlete && (
               <Problema>
                 "{provElegido?.nombre}" no es un proveedor de Fletes. Elegí uno de la lista.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { BorradorCosecha, Catalogos, CosechaExistente } from '@/types'
+import type { BorradorCosecha, Catalogos, CosechaExistente, Deposito } from '@/types'
 import { Opcion } from '@/components/ui/Opcion'
 import { Seccion } from '@/components/ui/Seccion'
 import { fecha } from '@/lib/format'
@@ -18,9 +18,12 @@ import {
   traerDatosCosecha,
   type DatosCosecha,
 } from '@/services/monday/cosecha'
-import { TABLERO_COSECHA } from '@/services/monday/columns'
+import { PROVEEDOR_TIPO_FLETES, TABLERO_COSECHA } from '@/services/monday/columns'
 import { FormCosecha } from './FormCosecha'
 import { BuscadorCosechas } from './BuscadorCosechas'
+import { ModalProveedor } from '@/features/altas/ModalProveedor'
+import { ModalDeposito } from '@/features/altas/ModalDeposito'
+import type { ResultadoProveedor } from '@/services/monday/altas'
 
 type Modo = 'CREAR' | 'DUPLICAR'
 
@@ -29,6 +32,11 @@ interface Props {
   cabecera: (pasos: ReactNode) => ReactNode
   /** Ver `FlujoComprobante`: avisa a la app si hay algo a medio cargar. */
   onPendiente?: (mensaje: string | null) => void
+  /**
+   * Suma a los catálogos de la app lo que se dio de alta acá (un proveedor, sus contactos), para
+   * que aparezca en esta operación y en las demás sin recargar.
+   */
+  onCatalogos: (cambio: (c: Catalogos) => Catalogos) => void
 }
 
 type EstadoDatos =
@@ -59,7 +67,7 @@ const enlace = (itemId: string) => `https://belauzaransa.monday.com/boards/${TAB
  * formulario con sus datos, editar lo que cambie y crearla como una nueva). Las reglas son las
  * mismas en los dos casos; ver `lib/cosecha.ts`.
  */
-export function FlujoCosecha({ catalogos, cabecera, onPendiente }: Props) {
+export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: Props) {
   const [datos, setDatos] = useState<EstadoDatos>({ fase: 'cargando' })
   const [modo, setModo] = useState<Modo | null>(null)
   const [borrador, setBorrador] = useState<BorradorCosecha>(borradorCosechaVacio)
@@ -67,6 +75,10 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente }: Props) {
   const [origen, setOrigen] = useState<CosechaExistente | null>(null)
   const [envio, setEnvio] = useState<EstadoEnvio>({ fase: 'inactivo' })
   const [mostrarFaltantes, setMostrarFaltantes] = useState(false)
+  /** Ventana de alta abierta. */
+  const [alta, setAlta] = useState<'proveedor' | 'deposito' | null>(null)
+  /** Resultado de la última alta, para avisarlo arriba del formulario. */
+  const [avisoAlta, setAvisoAlta] = useState<{ tipo: 'ok' | 'warn'; texto: string } | null>(null)
 
   const cargar = useCallback(() => {
     setDatos({ fase: 'cargando' })
@@ -113,6 +125,7 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente }: Props) {
     setBorrador(borradorCosechaVacio())
     setMostrarFaltantes(false)
     setEnvio({ fase: 'inactivo' })
+    setAvisoAlta(null)
   }
 
   /** Arranca el formulario con los datos de la cosecha elegida: es una copia, no la original. */
@@ -121,6 +134,51 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente }: Props) {
     setBorrador({ ...c.borrador, maquinariaIds: [...c.borrador.maquinariaIds], loteIds: [...c.borrador.loteIds] })
     setMostrarFaltantes(false)
     window.scrollTo({ top: 0 })
+  }
+
+  const proveedorCreado = (r: ResultadoProveedor) => {
+    const porNombre = (a: { nombre: string }, b: { nombre: string }) => a.nombre.localeCompare(b.nombre, 'es')
+    onCatalogos((c) => ({
+      ...c,
+      proveedores: [...c.proveedores, r.proveedor].sort(porNombre),
+      contactos: [...c.contactos, ...r.contactos].sort(porNombre),
+    }))
+    setAlta(null)
+    const esFlete = r.proveedor.tipos.includes(PROVEEDOR_TIPO_FLETES)
+    if (esFlete) setBorrador((b) => ({ ...b, proveedorId: r.proveedor.id }))
+    const contactos = r.contactos.length ? ` con ${r.contactos.length} contacto${r.contactos.length === 1 ? '' : 's'} nuevo${r.contactos.length === 1 ? '' : 's'}` : ''
+    setAvisoAlta(
+      r.fallidos.length > 0
+        ? {
+            tipo: 'warn',
+            texto: `Se creó "${r.proveedor.nombre}"${contactos}, pero no se pudo crear ${r.fallidos.map((f) => f.contacto.nombre).join(', ')}: cargalo en ✋ Contactos. (${r.fallidos[0].error})`,
+          }
+        : esFlete
+          ? { tipo: 'ok', texto: `Se creó el proveedor "${r.proveedor.nombre}"${contactos} y quedó asignado.` }
+          : {
+              tipo: 'warn',
+              texto: `Se creó "${r.proveedor.nombre}"${contactos}, pero no es de tipo Fletes, así que no se puede asignar a este flete.`,
+            },
+    )
+  }
+
+  const depositoCreado = (d: Deposito) => {
+    setDatos((x) =>
+      x.fase === 'listo'
+        ? {
+            fase: 'listo',
+            datos: { ...x.datos, depositos: [...x.datos.depositos, d].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')) },
+          }
+        : x,
+    )
+    setAlta(null)
+    const apto = borrador.cultivoId != null && d.cultivoIds.includes(borrador.cultivoId)
+    if (apto) setBorrador((b) => ({ ...b, depositoId: d.id }))
+    setAvisoAlta(
+      apto
+        ? { tipo: 'ok', texto: `Se creó el destino "${d.nombre}" y quedó asignado.` }
+        : { tipo: 'warn', texto: `Se creó "${d.nombre}", pero es de otro cultivo, así que no se asignó a esta cosecha.` },
+    )
   }
 
   const reiniciar = () => {
@@ -332,7 +390,47 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente }: Props) {
             </div>
           )}
 
-          {ctx && listoParaForm && <FormCosecha borrador={borrador} onCambio={cambiar} ctx={ctx} desde={2} />}
+          {avisoAlta && (
+            <div className={`aviso aviso--${avisoAlta.tipo === 'ok' ? 'ok' : 'warn'}`} style={{ marginBottom: 16 }}>
+              <i className={`fas fa-${avisoAlta.tipo === 'ok' ? 'circle-check' : 'triangle-exclamation'}`} aria-hidden />
+              <span style={{ flex: 1 }}>{avisoAlta.texto}</span>
+              <button type="button" className="btn btn-ghost btn--sm" onClick={() => setAvisoAlta(null)} aria-label="Cerrar aviso">
+                <i className="fas fa-xmark" aria-hidden />
+              </button>
+            </div>
+          )}
+
+          {ctx && listoParaForm && (
+            <FormCosecha
+              borrador={borrador}
+              onCambio={cambiar}
+              ctx={ctx}
+              desde={2}
+              onAgregarDeposito={() => setAlta('deposito')}
+              onAgregarProveedor={() => setAlta('proveedor')}
+            />
+          )}
+
+          {datos.fase === 'listo' && alta === 'proveedor' && (
+            <ModalProveedor
+              proveedores={catalogos.proveedores}
+              contactos={catalogos.contactos}
+              tipos={datos.datos.alta.tiposProveedor}
+              tipoSugerido={PROVEEDOR_TIPO_FLETES}
+              onCreado={proveedorCreado}
+              onCerrar={() => setAlta(null)}
+            />
+          )}
+          {datos.fase === 'listo' && alta === 'deposito' && (
+            <ModalDeposito
+              cultivos={catalogos.cultivos}
+              cultivoInicial={borrador.cultivoId}
+              silos={datos.datos.alta.silos}
+              depositos={datos.datos.depositos}
+              onCreado={depositoCreado}
+              onCerrar={() => setAlta(null)}
+            />
+          )}
 
           {mostrarFaltantes && listoParaForm && faltantes.length > 0 && (
             <div className="aviso aviso--error" style={{ marginTop: 4 }}>

@@ -341,7 +341,14 @@ export function App() {
      depósitos y las cosechas a duplicar. */
   if (operacion === 'REGISTRAR_COSECHA') {
     return (
-      <FlujoCosecha catalogos={carga.catalogos} cabecera={armarCabecera} onPendiente={setPendiente} />
+      <FlujoCosecha
+        catalogos={carga.catalogos}
+        cabecera={armarCabecera}
+        onPendiente={setPendiente}
+        onCatalogos={(cambio) =>
+          setCarga((c) => (c.fase === 'listo' ? { fase: 'listo', catalogos: cambio(c.catalogos) } : c))
+        }
+      />
     )
   }
 

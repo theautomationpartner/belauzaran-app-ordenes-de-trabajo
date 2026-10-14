@@ -303,3 +303,35 @@ export const COL_DEPOSITO = {
   cultivo: 'board_relation_mm1fxqbh',
   estado: 'color_mm3fjkvh',
 } as const
+
+/* ===== Altas al vuelo (proveedor, contacto, depósito) ===== */
+
+/** Columnas que completa el alta de un proveedor desde la app. */
+export const COL_PROVEEDOR_ALTA = {
+  nombreCompleto: 'text_mm84mmvf',
+  ubicacion: 'location_mm33fd1b',
+} as const
+
+/** Estado con el que nace un proveedor creado desde la app (`COL_PROVEEDOR.estado`). */
+export const PROVEEDOR_ACTIVO = 'Activo'
+
+/** Columnas de ✋ Contactos que completa el alta de un contacto. */
+export const COL_CONTACTO_ALTA = {
+  nombre: 'text_mm0xwjp9',
+  apellido: 'text_mm0xqhqm',
+  whatsapp: 'phone_mkw8mf8b',
+  email: 'email_mkw8zvjs',
+  /** Conexión de doble vía con 🤖Contactos del proveedor: completar un lado completa el otro. */
+  proveedores: 'board_relation_mm09g4gq',
+} as const
+
+/** 🛖Destino Depositos de Granos: silos, silo bolsas, acopios y corredores. */
+export const TABLERO_SILOS = '18410927183'
+export const COL_SILO = { tipo: 'color_mm1fa82m' } as const
+
+/** Columnas de 🤖 Granos en Deposito que completa el alta de un depósito. */
+export const COL_DEPOSITO_ALTA = {
+  silo: 'board_relation_mm1fq67c',
+  ubicacion: 'location_mm1fh806',
+} as const
+export const DEPOSITO_ACTIVO = 'Activo'

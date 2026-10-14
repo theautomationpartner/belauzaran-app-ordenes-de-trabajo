@@ -303,3 +303,29 @@ Del transporte se escribe sólo lo del tipo elegido. Make renombra el item despu
 
 **Buscar para duplicar:** no se trae el tablero entero. monday filtra por nombre que contiene el
 texto y por Cultivo, Campo, Lote y Campaña combinados, y devuelve las 30 más nuevas.
+
+### Altas al vuelo: proveedor, contacto y destino
+
+Si el proveedor del flete o el destino de granos no existen, se crean desde el mismo formulario
+con **"¿No está? Agregar … nuevo"**, en una ventana emergente, y quedan asignados al confirmar
+([`src/features/altas`](src/features/altas)).
+
+| Alta | Tablero | Obligatorio | Opcional | Nace con |
+| --- | --- | --- | --- | --- |
+| Proveedor | ✋ Proveedores `18410927151` | Nombre completo (`text_mm84mmvf`, también el nombre del item), CUIT `XX-XXXXXXXX-X` (`text_mm0xdjya`) | Tipo (`dropdown_mm39x0j7`), ubicación (`location_mm33fd1b`), contactos (`board_relation_mm09gcys`) | `status` = Activo |
+| Contacto (desde el proveedor) | ✋ Contactos `18410927146` | Nombre/s, apellido/s y WhatsApp **o** email | el otro medio | conectado al proveedor |
+| Destino granos en depósito | 🤖 Granos en Deposito `18410927175` | Cultivo (`board_relation_mm1fxqbh`), silo/acopio (`board_relation_mm1fq67c`) | ubicación (`location_mm1fh806`) | `color_mm3fjkvh` = Activo, nombre "Cultivo - Silo" |
+
+- **CUIT:** los guiones se ponen solos; un CUIT ya cargado bloquea (hay que elegir ese proveedor).
+  El dígito verificador sólo advierte: 3 de los CUIT ya cargados no lo cumplen.
+- **WhatsApp:** se normaliza a `549` + área + número (13 dígitos) aunque lo tipeen con 0, con 15
+  o con +54 (`02494 15-600860` → `5492494600860`).
+- **Contactos:** los nuevos se crean *después* del proveedor, apuntando a él. La conexión es de
+  doble vía, así que el proveedor los muestra solos. Un contacto que falla no deshace el proveedor.
+- **Depósito repetido:** se controla por cultivo + silo conectados, no por nombre (hay depósitos
+  escritos distinto que su silo).
+- **Ubicación:** monday exige coordenadas. Se busca la dirección en Nominatim (OpenStreetMap,
+  gratuito, desde el navegador) y se elige una coincidencia; la búsqueda va con botón, no por tecla,
+  como pide su política de uso.
+- Lo creado se suma a los catálogos de la app: el proveedor nuevo aparece también en las otras
+  operaciones sin recargar.

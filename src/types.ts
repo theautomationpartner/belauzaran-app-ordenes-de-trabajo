@@ -408,6 +408,8 @@ export interface BorradorCosecha {
 export interface Deposito extends ItemBasico {
   /** Cultivos conectados en `board_relation_mm1fxqbh`: los que ese depósito puede recibir. */
   cultivoIds: string[]
+  /** Silo, silo bolsa, acopio o corredor conectado: junto con el cultivo, define el depósito. */
+  siloIds: string[]
   estado: string
 }
 

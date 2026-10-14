@@ -4,9 +4,11 @@
 import type { CosechaExistente, Deposito, TipoTransporte } from '@/types'
 import { mondayApi } from './sdk'
 import { traerItems, type ItemCrudo } from './catalogos'
+import { traerOpcionesAlta, type OpcionesAlta } from './altas'
 import {
   COL_COSECHA,
   COL_DEPOSITO,
+  COL_DEPOSITO_ALTA,
   COSECHA_DUPLICADO,
   TABLERO_COSECHA,
   TABLERO_DEPOSITOS,
@@ -28,15 +30,18 @@ export interface DatosCosecha {
    * habilitar varios; cuando lo cambien, la app lo toma sola.
    */
   maquinariaMultiple: boolean
+  /** Silos y tipos de proveedor, para dar de alta un depósito o un proveedor desde el formulario. */
+  alta: OpcionesAlta
 }
 
-/** Depósitos y configuración de la columna de maquinarias, en paralelo. */
+/** Depósitos, configuración de la columna de maquinarias y opciones de alta, en paralelo. */
 export async function traerDatosCosecha(): Promise<DatosCosecha> {
-  const [crudos, config] = await Promise.all([
-    traerItems(TABLERO_DEPOSITOS, columnas(COL_DEPOSITO.cultivo, COL_DEPOSITO.estado), 200),
+  const [crudos, config, alta] = await Promise.all([
+    traerItems(TABLERO_DEPOSITOS, columnas(COL_DEPOSITO.cultivo, COL_DEPOSITO.estado, COL_DEPOSITO_ALTA.silo), 200),
     mondayApi<{ boards: { columns: { settings_str: string }[] }[] }>(
       `query { boards(ids: ${TABLERO_COSECHA}) { columns(ids: ["${COL_COSECHA.maquinarias}"]) { settings_str } } }`,
     ),
+    traerOpcionesAlta(),
   ])
 
   const depositos = crudos
@@ -46,6 +51,7 @@ export async function traerDatosCosecha(): Promise<DatosCosecha> {
         id: it.id,
         nombre: it.name.replace(/\s+/g, ' ').trim(),
         cultivoIds: idsConectados(cols, COL_DEPOSITO.cultivo),
+        siloIds: idsConectados(cols, COL_DEPOSITO_ALTA.silo),
         estado: texto(cols, COL_DEPOSITO.estado),
       }
     })
@@ -62,7 +68,7 @@ export async function traerDatosCosecha(): Promise<DatosCosecha> {
     // Sin poder leer la configuración se asume la del tablero por defecto (varios).
   }
 
-  return { depositos, maquinariaMultiple }
+  return { depositos, maquinariaMultiple, alta }
 }
 
 /** Filtros de la búsqueda de cosechas para duplicar. Todos se combinan (Y). */
