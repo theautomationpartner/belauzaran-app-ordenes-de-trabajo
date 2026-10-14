@@ -6,7 +6,7 @@
 /* ===== Filtros ===== */
 .filtros-op {
   display: grid;
-  grid-template-columns: minmax(240px, 2fr) minmax(180px, 1fr) minmax(180px, 1fr);
+  grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(160px, 1fr));
   gap: 14px;
 }
 /* Mismo alto que los selectores de al lado. */
@@ -365,4 +365,31 @@ details[open] .grupo-caret {
 .cambio-aviso {
   align-self: flex-start;
   margin-top: 4px;
+}
+
+/* Resumen de la tarjeta plegada: lo que cuelga de la orden y el botón para desplegarla. */
+.op-resumen {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  padding: 8px 14px;
+}
+.op-cuenta--total {
+  color: var(--green-dark);
+}
+.op-desplegar {
+  margin-left: auto;
+  color: var(--primary-blue);
+  font-weight: 700;
+}
+/* Desplegada, el detalle queda separado del resumen por un filete. */
+.op-resumen + .op-body {
+  border-top: 1px solid #eef0f4;
+}
+@media (max-width: 720px) {
+  .op-desplegar {
+    margin-left: 0;
+    width: 100%;
+  }
 }

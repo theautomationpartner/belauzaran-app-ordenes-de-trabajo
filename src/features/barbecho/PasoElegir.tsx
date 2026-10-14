@@ -28,6 +28,8 @@ export function PasoElegir({ ops, cultivos, asignaciones, onCambio }: Props) {
   /* Campos y campañas admiten varios a la vez: dentro de un filtro alcanza con coincidir con
      uno; entre filtros, se piden los dos. Vacío = sin filtrar. */
   const [campos, setCampos] = useState<string[]>([])
+  /** Lotes, sólo de los campos elegidos: el filtro de lote se habilita después del de campo. */
+  const [lotes, setLotes] = useState<string[]>([])
   const [campanas, setCampanas] = useState<string[]>([])
 
   /* Barbecho no se ofrece como destino: asignarlo dejaría la orden exactamente como está. */
@@ -48,17 +50,30 @@ export function PasoElegir({ ops, cultivos, asignaciones, onCambio }: Props) {
     }))
   const opcionesCampo = useMemo(() => conCuenta(ops.map((o) => o.campo)), [ops])
   const opcionesCampana = useMemo(() => conCuenta(ops.map((o) => o.campana)), [ops])
+  /* Los lotes que se ofrecen son los de los campos elegidos: sin campo no hay lotes para elegir. */
+  const opcionesLote = useMemo(
+    () => conCuenta(ops.filter((o) => campos.includes(o.campo)).map((o) => o.lote)),
+    [ops, campos],
+  )
+
+  /** Cambiar los campos suelta los lotes que ya no son de ninguno de los elegidos. */
+  const cambiarCampos = (nuevos: string[]) => {
+    setCampos(nuevos)
+    const validos = new Set(ops.filter((o) => nuevos.includes(o.campo)).map((o) => o.lote))
+    setLotes((l) => l.filter((x) => validos.has(x)))
+  }
 
   const visibles = useMemo(() => {
     const q = normalizar(consulta.trim())
     return ops.filter((o) => {
       if (campos.length > 0 && !campos.includes(o.campo)) return false
+      if (lotes.length > 0 && !lotes.includes(o.lote)) return false
       if (campanas.length > 0 && !campanas.includes(o.campana)) return false
       if (!q) return true
       const ots = o.ordenesTrabajo.map((t) => t.nombre).join(' ')
       return normalizar(`${o.nombre} ${o.lote} ${ots}`).includes(q)
     })
-  }, [ops, consulta, campos, campanas])
+  }, [ops, consulta, campos, lotes, campanas])
 
   const marcadas = Object.keys(asignaciones)
   const sinCultivo = marcadas.filter((id) => !asignaciones[id]).length
@@ -90,12 +105,13 @@ export function PasoElegir({ ops, cultivos, asignaciones, onCambio }: Props) {
     onCambio(Object.fromEntries(marcadas.map((id) => [id, cultivoId])))
   }
 
-  const hayFiltro = Boolean(consulta || campos.length || campanas.length)
+  const hayFiltro = Boolean(consulta || campos.length || lotes.length || campanas.length)
 
   /* Los elegidos quedan a la vista como chips con su cruz: el desplegable sólo dice
      "3 seleccionados" y obligaría a abrirlo para saber cuáles. */
   const chips = [
-    ...campos.map((v) => ({ v, quitar: () => setCampos(campos.filter((x) => x !== v)) })),
+    ...campos.map((v) => ({ v, quitar: () => cambiarCampos(campos.filter((x) => x !== v)) })),
+    ...lotes.map((v) => ({ v, quitar: () => setLotes(lotes.filter((x) => x !== v)) })),
     ...campanas.map((v) => ({ v, quitar: () => setCampanas(campanas.filter((x) => x !== v)) })),
   ]
 
@@ -126,8 +142,18 @@ export function PasoElegir({ ops, cultivos, asignaciones, onCambio }: Props) {
             <SelectorMultiple
               opciones={opcionesCampo}
               valores={campos}
-              onCambio={setCampos}
+              onCambio={cambiarCampos}
               placeholder="Todos los campos"
+            />
+          </div>
+          <div className="ig">
+            <span className="ig-lbl">Lote</span>
+            <SelectorMultiple
+              opciones={opcionesLote}
+              valores={lotes}
+              onCambio={setLotes}
+              placeholder="Todos los lotes"
+              vacio="Elegí primero el campo."
             />
           </div>
           <div className="ig">
@@ -160,6 +186,7 @@ export function PasoElegir({ ops, cultivos, asignaciones, onCambio }: Props) {
             onClick={() => {
               setConsulta('')
               setCampos([])
+              setLotes([])
               setCampanas([])
             }}
           >
