@@ -13,6 +13,7 @@ import { TABLERO_FACTURAS, TABLERO_REMITOS } from '@/services/monday/columns'
 import { SelectorArchivo } from './SelectorArchivo'
 import { Opcion } from '@/components/ui/Opcion'
 import { Seccion } from '@/components/ui/Seccion'
+import { SelectorBuscable } from '@/components/ui/SelectorBuscable'
 
 type Tipo = 'REMITO' | 'FACTURA'
 type Formato = 'PDF' | 'JPEG'
@@ -56,6 +57,10 @@ const iniciales = (nombre: string) =>
     .map((p) => p[0]!.toUpperCase())
     .join('')
 
+/** Quien está logueado, si figura entre las personas que acepta el tablero de remitos. */
+const personaPorDefecto = (d: DatosRemito): string | null =>
+  d.usuarioActualId && d.personas.some((p) => p.id === d.usuarioActualId) ? d.usuarioActualId : null
+
 /**
  * Operación "Registrar Remito / Factura": se elige qué se sube y se crea el item en su tablero con
  * el archivo adjunto. Es un formulario de una sola pantalla en bloques numerados: son pocos datos
@@ -65,6 +70,8 @@ export function FlujoComprobante({ cabecera, onPendiente }: Props) {
   const [datos, setDatos] = useState<EstadoDatos>({ fase: 'cargando' })
   const [tipo, setTipo] = useState<Tipo | null>(null)
   const [personaId, setPersonaId] = useState<string | null>(null)
+  /** Se abrió el desplegable para elegir otra persona que la logueada. */
+  const [cambiandoPersona, setCambiandoPersona] = useState(false)
   const [destinoId, setDestinoId] = useState<string | null>(null)
   const [formato, setFormato] = useState<Formato | null>(null)
   const [archivo, setArchivo] = useState<File | null>(null)
@@ -76,7 +83,11 @@ export function FlujoComprobante({ cabecera, onPendiente }: Props) {
   const cargar = useCallback(() => {
     setDatos({ fase: 'cargando' })
     traerDatosRemito()
-      .then((d) => setDatos({ fase: 'listo', datos: d }))
+      .then((d) => {
+        setDatos({ fase: 'listo', datos: d })
+        // La persona arranca siendo quien está logueado, si tiene acceso al tablero de remitos.
+        setPersonaId((actual) => actual ?? personaPorDefecto(d))
+      })
       .catch((e: unknown) => setDatos({ fase: 'error', mensaje: e instanceof Error ? e.message : String(e) }))
   }, [])
   useEffect(() => cargar(), [cargar])
@@ -123,6 +134,10 @@ export function FlujoComprobante({ cabecera, onPendiente }: Props) {
 
   const lista = datos.fase === 'listo' ? datos.datos : null
   const persona = lista?.personas.find((p) => p.id === personaId) ?? null
+  const esUsuarioActual = Boolean(persona && persona.id === lista?.usuarioActualId)
+  /* El desplegable se muestra cuando lo piden o cuando no hay persona puesta (el logueado no
+     tiene acceso al tablero, o no se pudo saber quién es). */
+  const mostrarSelectorPersona = cambiandoPersona || !persona
   const destino = lista?.destinos.find((d) => d.id === destinoId) ?? null
 
   const faltantes: string[] = []
@@ -139,7 +154,8 @@ export function FlujoComprobante({ cabecera, onPendiente }: Props) {
 
   const reiniciar = () => {
     setTipo(null)
-    setPersonaId(null)
+    setPersonaId(datos.fase === 'listo' ? personaPorDefecto(datos.datos) : null)
+    setCambiandoPersona(false)
     setDestinoId(null)
     setFormato(null)
     setArchivo(null)
@@ -378,28 +394,56 @@ export function FlujoComprobante({ cabecera, onPendiente }: Props) {
                   <Seccion
                     numero={n++}
                     titulo="Persona"
-                    ayuda="Quién registra el remito. Sólo aparecen las personas con acceso al tablero de remitos."
+                    ayuda="Quién registra el remito. Se pone sola con quien está usando la App."
                     completa={persona != null}
                   >
-                    <div className="opciones" role="radiogroup" aria-label="Persona">
-                      {datos.datos.personas.map((p) => (
-                        <button
-                          type="button"
-                          role="radio"
-                          aria-checked={p.id === personaId}
-                          key={p.id}
-                          className={`persona ${p.id === personaId ? 'persona--activa' : ''}`}
-                          onClick={() => setPersonaId(p.id)}
-                        >
-                          <span className="persona-ava">{iniciales(p.nombre)}</span>
-                          <span className="persona-nom">
-                            {p.nombre}
-                            {p.esInvitado && <span className="xs" style={{ display: 'block' }}>Invitado</span>}
+                    {persona && (
+                      <div className="persona persona--activa persona--fija">
+                        <span className="persona-ava">{iniciales(persona.nombre)}</span>
+                        <span className="persona-nom">
+                          {persona.nombre}
+                          <span className="xs" style={{ display: 'block' }}>
+                            {esUsuarioActual ? 'Sos vos: tomado de tu sesión de monday' : 'Elegida a mano'}
+                            {persona.esInvitado ? ' · Invitado' : ''}
                           </span>
-                          {p.id === personaId && <i className="fas fa-circle-check persona-ok" aria-hidden />}
-                        </button>
-                      ))}
-                    </div>
+                        </span>
+                        {!cambiandoPersona && (
+                          <button type="button" className="btn btn-outblue btn--sm" onClick={() => setCambiandoPersona(true)}>
+                            <i className="fas fa-user-pen" aria-hidden /> Cambiar persona
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {!persona && (
+                      <p className="ig-hint" style={{ marginBottom: 8 }}>
+                        {datos.datos.usuarioActualId
+                          ? 'Tu usuario no tiene acceso al tablero de remitos: elegí la persona de la lista.'
+                          : 'Elegí la persona de la lista.'}
+                      </p>
+                    )}
+                    {mostrarSelectorPersona && (
+                      <div className="persona-cambio">
+                        <SelectorBuscable
+                          opciones={datos.datos.personas.map((p) => ({
+                            id: p.id,
+                            nombre: p.nombre,
+                            detalle: p.id === datos.datos.usuarioActualId ? 'Vos' : p.esInvitado ? 'Invitado' : undefined,
+                          }))}
+                          valor={personaId}
+                          onCambio={(id) => {
+                            if (!id) return
+                            setPersonaId(id)
+                            setCambiandoPersona(false)
+                          }}
+                          placeholder="Elegí la persona…"
+                        />
+                        {cambiandoPersona && (
+                          <button type="button" className="btn btn-ghost btn--sm" onClick={() => setCambiandoPersona(false)}>
+                            Cancelar
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </Seccion>
 
                   <Seccion

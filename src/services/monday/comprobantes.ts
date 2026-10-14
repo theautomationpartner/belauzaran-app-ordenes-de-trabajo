@@ -4,6 +4,7 @@
  */
 import type { ItemBasico } from '@/types'
 import { mondayApi, subirArchivo } from './sdk'
+import { obtenerDatosSesion } from './sesion'
 import {
   COL_FACTURA,
   COL_REMITO,
@@ -25,6 +26,31 @@ export interface PersonaMonday {
 export interface DatosRemito {
   personas: PersonaMonday[]
   destinos: ItemBasico[]
+  /** Usuario de monday que está usando la App; `null` si no se pudo saber. */
+  usuarioActualId: string | null
+}
+
+/**
+ * Id del usuario que está usando la App.
+ *
+ * En monday sale del `sessionToken`, que monday firma con el usuario logueado: es el mismo token
+ * que verifica el servidor, así que no se puede hacer pasar por otro desde el navegador. NO se
+ * pregunta `me` a la API, porque en el deploy la API responde con el token de la cuenta y
+ * devolvería siempre el mismo usuario. En local no hay sesión de monday: ahí `me` es el dueño
+ * del token de desarrollo, que alcanza para probar.
+ */
+async function idUsuarioActual(): Promise<string | null> {
+  try {
+    if (import.meta.env.DEV) {
+      const d = await mondayApi<{ me: { id: string } | null }>('query { me { id } }')
+      return d.me ? String(d.me.id) : null
+    }
+    const sesion = await obtenerDatosSesion()
+    return sesion.userId ? String(sesion.userId) : null
+  } catch {
+    // Sin saber quién es, la persona se elige a mano: no impide registrar.
+    return null
+  }
 }
 
 /**
@@ -34,13 +60,16 @@ export interface DatosRemito {
  * acceso al tablero, y ofrecer a cualquier usuario de la cuenta haría fallar el alta.
  */
 export async function traerDatosRemito(): Promise<DatosRemito> {
-  const data = await mondayApi<{
-    remitos: { subscribers: { id: string; name: string; enabled: boolean; is_guest: boolean }[] }[]
-    destinos: { items_page: { items: { id: string; name: string }[] } }[]
-  }>(`query {
-    remitos: boards(ids: ${TABLERO_REMITOS}) { subscribers { id name enabled is_guest } }
-    destinos: boards(ids: ${TABLERO_DESTINOS}) { items_page(limit: 100) { items { id name } } }
-  }`)
+  const [data, usuarioActualId] = await Promise.all([
+    mondayApi<{
+      remitos: { subscribers: { id: string; name: string; enabled: boolean; is_guest: boolean }[] }[]
+      destinos: { items_page: { items: { id: string; name: string }[] } }[]
+    }>(`query {
+      remitos: boards(ids: ${TABLERO_REMITOS}) { subscribers { id name enabled is_guest } }
+      destinos: boards(ids: ${TABLERO_DESTINOS}) { items_page(limit: 100) { items { id name } } }
+    }`),
+    idUsuarioActual(),
+  ])
 
   const personas = (data.remitos[0]?.subscribers ?? [])
     .filter((s) => s.enabled)
@@ -52,7 +81,7 @@ export async function traerDatosRemito(): Promise<DatosRemito> {
     nombre: it.name.trim(),
   }))
 
-  return { personas, destinos }
+  return { personas, destinos, usuarioActualId }
 }
 
 /**

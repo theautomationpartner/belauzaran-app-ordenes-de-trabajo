@@ -402,3 +402,22 @@
     width: 100%;
   }
 }
+
+/* Persona puesta por la sesión: una sola tarjeta, con el botón para cambiarla. */
+.persona--fija {
+  cursor: default;
+  flex-wrap: wrap;
+}
+.persona--fija .btn {
+  margin-left: auto;
+}
+.persona-cambio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  max-width: 420px;
+}
+.persona-cambio .dd {
+  flex: 1;
+}
