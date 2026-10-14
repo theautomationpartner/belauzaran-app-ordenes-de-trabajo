@@ -307,7 +307,7 @@ texto y por Cultivo, Campo, Lote y Campaña combinados, y devuelve las 30 más n
 ### Altas al vuelo: proveedor, contacto y destino
 
 Si el proveedor del flete o el destino de granos no existen, se cargan desde el mismo formulario
-con **"¿No está? Agregar … nuevo"**, en una ventana emergente, y quedan elegidos
+con **"Agregar … nuevo"**, en una ventana emergente, y quedan elegidos
 ([`src/features/altas`](src/features/altas)).
 
 **Nada se crea al confirmar la ventana.** Lo cargado queda pendiente, con un id provisorio, y se

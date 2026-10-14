@@ -98,7 +98,7 @@ function TarjetaCosecha({ c, onElegir }: { c: CosechaExistente; onElegir: () => 
             {abierta ? 'Ocultar' : 'Ver todo'}
           </button>
           <button type="button" className="btn btn-primary btn--sm" onClick={onElegir}>
-            <i className="fas fa-copy" aria-hidden /> Duplicar esta
+            <i className="fas fa-copy" aria-hidden /> Duplicar
           </button>
         </div>
       </div>

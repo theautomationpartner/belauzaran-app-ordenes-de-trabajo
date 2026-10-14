@@ -90,7 +90,7 @@ function ControlesAlta({ que, hayElegido, nuevo, nuevoElegido, onQuitar, onAgreg
         )}
         {!nuevo && (
           <button type="button" className="btn btn-outblue btn--sm" onClick={onAgregar}>
-            <i className="fas fa-plus" aria-hidden /> ¿No está? Agregar {que} nuevo
+            <i className="fas fa-plus" aria-hidden /> Agregar {que} nuevo
           </button>
         )}
       </div>

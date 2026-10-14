@@ -403,7 +403,7 @@ export function FlujoComprobante({ cabecera, onPendiente }: Props) {
                         <span className="persona-nom">
                           {persona.nombre}
                           <span className="xs" style={{ display: 'block' }}>
-                            {esUsuarioActual ? 'Sos vos: tomado de tu sesión de monday' : 'Elegida a mano'}
+                            {esUsuarioActual ? 'Usuario actual, tomado de la sesión de monday' : 'Seleccionada manualmente'}
                             {persona.esInvitado ? ' · Invitado' : ''}
                           </span>
                         </span>
@@ -427,7 +427,7 @@ export function FlujoComprobante({ cabecera, onPendiente }: Props) {
                           opciones={datos.datos.personas.map((p) => ({
                             id: p.id,
                             nombre: p.nombre,
-                            detalle: p.id === datos.datos.usuarioActualId ? 'Vos' : p.esInvitado ? 'Invitado' : undefined,
+                            detalle: p.id === datos.datos.usuarioActualId ? 'Usuario actual' : p.esInvitado ? 'Invitado' : undefined,
                           }))}
                           valor={personaId}
                           onCambio={(id) => {
