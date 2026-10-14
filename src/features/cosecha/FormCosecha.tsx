@@ -7,7 +7,7 @@ import { SelectorBuscable, type OpcionSelector } from '@/components/ui/SelectorB
 import { SelectorMultiple } from '@/components/ui/SelectorMultiple'
 import { aNumero, hectareas } from '@/lib/format'
 import { buscar, hectareasDeLote } from '@/lib/orden'
-import { esNuevo } from '@/lib/altas'
+import { esNuevo, ID_DEPOSITO_NUEVO, ID_PROVEEDOR_NUEVO } from '@/lib/altas'
 import {
   depositosAptos,
   lotesDeCampo,
@@ -26,21 +26,75 @@ interface Props {
   ctx: ContextoCosecha
   /** Número del primer bloque: el formulario va debajo de la elección de Crear / Duplicar. */
   desde: number
-  /** Hay un proveedor / destino nuevo cargado, que se crea al confirmar la cosecha. */
-  proveedorNuevo: boolean
-  depositoNuevo: boolean
-  /** Abre el alta de un destino de granos que no está en la lista. */
+  /** Nombre del proveedor / destino nuevo cargado (se crea al confirmar la cosecha), o `null`. */
+  proveedorNuevo: string | null
+  depositoNuevo: string | null
+  /** Abre la ventana de alta (o de edición, si ya hay uno nuevo cargado). */
   onAgregarDeposito: () => void
-  /** Abre el alta de un proveedor de fletes que no está en la lista. */
   onAgregarProveedor: () => void
+  /** Tira el nuevo cargado: no se va a crear, y si estaba elegido se deja de usar. */
+  onDescartarDeposito: () => void
+  onDescartarProveedor: () => void
 }
 
-/** Botón "Agregar … nuevo" debajo de un selector, para cuando lo que se busca no existe. */
-function BotonAgregar({ texto, onClick }: { texto: string; onClick: () => void }) {
+interface ControlesAltaProps {
+  /** "destino" / "proveedor": se usa en los textos de los botones. */
+  que: string
+  /** Hay uno elegido en el selector (existente o nuevo). */
+  hayElegido: boolean
+  /** Nombre del nuevo cargado y todavía sin crear, o `null`. */
+  nuevo: string | null
+  /** El nuevo cargado es el que está elegido. */
+  nuevoElegido: boolean
+  onQuitar: () => void
+  onAgregar: () => void
+  onDescartar: () => void
+}
+
+/**
+ * Lo que se puede hacer con lo elegido debajo de un selector: quitarlo, cargar uno nuevo si no
+ * está en la lista, y —si ya se cargó uno nuevo— editarlo o descartarlo. Descartar el nuevo deja
+ * libre para elegir uno existente o cargar otro distinto.
+ */
+function ControlesAlta({ que, hayElegido, nuevo, nuevoElegido, onQuitar, onAgregar, onDescartar }: ControlesAltaProps) {
   return (
-    <button type="button" className="btn btn-outblue btn--sm btn-agregar" onClick={onClick}>
-      <i className="fas fa-plus" aria-hidden /> {texto}
-    </button>
+    <>
+      {nuevo && (
+        <div className="alta-pendiente">
+          <i className="fas fa-wand-magic-sparkles" aria-hidden />
+          <span className="alta-pendiente-body">
+            <span className="font-b">
+              {que === 'destino' ? 'Destino' : 'Proveedor'} nuevo: {nuevo}
+            </span>
+            <span className="xs">
+              {nuevoElegido
+                ? 'Elegido. Se crea en monday recién cuando confirmes la cosecha.'
+                : 'Cargado pero no elegido: si no lo elegís en la lista, no se crea.'}
+            </span>
+          </span>
+          <span className="alta-pendiente-acciones">
+            <button type="button" className="btn btn-ghost btn--sm" onClick={onAgregar}>
+              <i className="fas fa-pen" aria-hidden /> Editar
+            </button>
+            <button type="button" className="btn btn-ghost btn-ghost--rojo btn--sm" onClick={onDescartar}>
+              <i className="fas fa-trash-can" aria-hidden /> Descartar
+            </button>
+          </span>
+        </div>
+      )}
+      <div className="alta-acciones">
+        {hayElegido && (
+          <button type="button" className="btn btn-ghost btn-ghost--rojo btn--sm" onClick={onQuitar}>
+            <i className="fas fa-xmark" aria-hidden /> Quitar {que}
+          </button>
+        )}
+        {!nuevo && (
+          <button type="button" className="btn btn-outblue btn--sm" onClick={onAgregar}>
+            <i className="fas fa-plus" aria-hidden /> ¿No está? Agregar {que} nuevo
+          </button>
+        )}
+      </div>
+    </>
   )
 }
 
@@ -71,6 +125,8 @@ export function FormCosecha({
   depositoNuevo,
   onAgregarDeposito,
   onAgregarProveedor,
+  onDescartarDeposito,
+  onDescartarProveedor,
 }: Props) {
   const { catalogos, depositos, maquinariaMultiple } = ctx
   const [tiposMaq, setTiposMaq] = useState<string[]>([])
@@ -272,9 +328,14 @@ export function FormCosecha({
           placeholder="Elegí el depósito…"
           vacio={cultivo ? `No hay depósitos de ${cultivo.nombre}.` : 'Elegí primero el cultivo.'}
         />
-        <BotonAgregar
-          texto={depositoNuevo ? 'Editar el destino nuevo' : '¿No está? Agregar destino nuevo'}
-          onClick={onAgregarDeposito}
+        <ControlesAlta
+          que="destino"
+          hayElegido={Boolean(b.depositoId)}
+          nuevo={depositoNuevo}
+          nuevoElegido={b.depositoId === ID_DEPOSITO_NUEVO}
+          onQuitar={() => onCambio({ depositoId: null })}
+          onAgregar={onAgregarDeposito}
+          onDescartar={onDescartarDeposito}
         />
         {depositoNoApto && (
           <Problema>
@@ -384,9 +445,14 @@ export function FormCosecha({
               />
               <span className="ig-hint">Sólo aparecen los proveedores de tipo Fletes.</span>
             </div>
-            <BotonAgregar
-              texto={proveedorNuevo ? 'Editar el proveedor nuevo' : '¿No está? Agregar proveedor nuevo'}
-              onClick={onAgregarProveedor}
+            <ControlesAlta
+              que="proveedor"
+              hayElegido={Boolean(b.proveedorId)}
+              nuevo={proveedorNuevo}
+              nuevoElegido={b.proveedorId === ID_PROVEEDOR_NUEVO}
+              onQuitar={() => onCambio({ proveedorId: null })}
+              onAgregar={onAgregarProveedor}
+              onDescartar={onDescartarProveedor}
             />
             {provNoFlete && (
               <Problema>

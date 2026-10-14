@@ -218,6 +218,20 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: 
     )
   }
 
+  /** Tira el proveedor nuevo: no se crea, y si estaba elegido el flete queda sin proveedor. */
+  const descartarProveedor = () => {
+    setProveedorNuevo(null)
+    setBorrador((b) => (b.proveedorId === ID_PROVEEDOR_NUEVO ? { ...b, proveedorId: null } : b))
+    setAvisoAlta(null)
+  }
+
+  /** Tira el destino nuevo: no se crea, y si estaba elegido la cosecha queda sin destino. */
+  const descartarDeposito = () => {
+    setDepositoNuevo(null)
+    setBorrador((b) => (b.depositoId === ID_DEPOSITO_NUEVO ? { ...b, depositoId: null } : b))
+    setAvisoAlta(null)
+  }
+
   const reiniciar = () => {
     setModo(null)
     setOrigen(null)
@@ -522,10 +536,12 @@ export function FlujoCosecha({ catalogos, cabecera, onPendiente, onCatalogos }: 
               onCambio={cambiar}
               ctx={ctx}
               desde={2}
-              proveedorNuevo={proveedorNuevo != null}
-              depositoNuevo={depositoNuevo != null}
+              proveedorNuevo={proveedorNuevo ? proveedorNuevo.nombreCompleto.trim() : null}
+              depositoNuevo={depositoNuevo ? `${depositoNuevo.cultivo.nombre} - ${depositoNuevo.silo.nombre}` : null}
               onAgregarDeposito={() => setAlta('deposito')}
               onAgregarProveedor={() => setAlta('proveedor')}
+              onDescartarDeposito={descartarDeposito}
+              onDescartarProveedor={descartarProveedor}
             />
           )}
 

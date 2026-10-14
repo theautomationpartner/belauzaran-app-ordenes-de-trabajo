@@ -280,6 +280,23 @@ export function ModalProveedor({ proveedores, contactos, tipos, tipoSugerido, in
             onCambio={(ids) => set({ contactoIds: ids })}
             placeholder="Conectar contactos existentes…"
           />
+          {/* Los existentes elegidos, a la vista y con su cruz: el desplegable sólo dice cuántos. */}
+          {p.contactoIds.length > 0 && (
+            <div className="filtros-elegidos" style={{ marginTop: 8 }}>
+              {p.contactoIds.map((id) => (
+                <span className="chip-filtro" key={id}>
+                  {contactos.find((c) => c.id === id)?.nombre ?? 'Contacto'}
+                  <button
+                    type="button"
+                    onClick={() => set({ contactoIds: p.contactoIds.filter((x) => x !== id) })}
+                    aria-label="Quitar el contacto"
+                  >
+                    <i className="fas fa-xmark" aria-hidden />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
           {p.contactosNuevos.length > 0 && (
             <div className="elegidos" style={{ marginTop: 8, marginBottom: 0 }}>
               {p.contactosNuevos.map((c) => {

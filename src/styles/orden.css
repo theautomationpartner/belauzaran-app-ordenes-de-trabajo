@@ -1365,8 +1365,3 @@
   overflow-wrap: anywhere;
 }
 
-/* "¿No está? Agregar … nuevo", debajo de un selector. */
-.btn-agregar {
-  margin-top: 8px;
-  align-self: flex-start;
-}
