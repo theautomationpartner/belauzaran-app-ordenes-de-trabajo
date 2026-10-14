@@ -255,3 +255,48 @@ export const FACTURA_ORIGEN_MANUAL = 'MANUAL'
  */
 export const COL_FACTURA_ESTADO = 'color_mm1ajk2x'
 export const FACTURA_ESTADO_REGISTRAR = 'Registrar'
+
+/* ===== Registrar Cosecha ===== */
+
+/** ✋ Cosecha. */
+export const TABLERO_COSECHA = '18410927172'
+/** 🤖 Granos en Deposito: destinos posibles del grano cosechado. */
+export const TABLERO_DEPOSITOS = '18410927175'
+
+export const COL_COSECHA = {
+  cultivo: 'board_relation_mm1f8xpb',
+  campana: 'board_relation_mm1f9j3',
+  campo: 'board_relation_mm1fqqsa',
+  lote: 'board_relation_mm3bqrjy',
+  fecha: 'date_mm3b7319',
+  kg: 'numeric_mm1fs180',
+  deposito: 'board_relation_mm3cgegw',
+  transporte: 'color_mm1fbf6v',
+  /** Sólo con Flete Propio: una o más maquinarias (según lo permita la columna, ver `traerDatosCosecha`). */
+  maquinarias: 'board_relation_mm1fbdsm',
+  /** Sólo con Flete Contratado: un proveedor de tipo Fletes. */
+  proveedor: 'board_relation_mm1f9twb',
+  cartaPorte: 'text_mm1fnckc',
+  km: 'numeric_mm1fe2f7',
+  ctg: 'text_mm3kavqa',
+  /** 🤖 Estado de Registro. La duplicada nace en "Registrar DUP"; el alta normal, sin estado. */
+  estadoRegistro: 'color_mm444rn8',
+  /** 🤖Estado Duplicado. La cosecha de la que se copiaron los datos queda en "Duplicado". */
+  estadoDuplicado: 'color_mm59ytz6',
+  /** 🤖ID Cosecha (COS-001…): sirve para distinguir cosechas con el mismo nombre. */
+  idCosecha: 'pulse_id_mm41rdrf',
+} as const
+
+export const TRANSPORTE_PROPIO = 'Flete Propio'
+export const TRANSPORTE_CONTRATADO = 'Flete Contratado'
+export const COSECHA_REGISTRAR_DUP = 'Registrar DUP'
+export const COSECHA_DUPLICADO = 'Duplicado'
+
+/** Tipo de proveedor (`COL_PROVEEDOR.tipo`) que puede hacer un flete contratado. */
+export const PROVEEDOR_TIPO_FLETES = 'Fletes'
+
+/** 🤖 Granos en Deposito: el cultivo que admite cada depósito. */
+export const COL_DEPOSITO = {
+  cultivo: 'board_relation_mm1fxqbh',
+  estado: 'color_mm3fjkvh',
+} as const

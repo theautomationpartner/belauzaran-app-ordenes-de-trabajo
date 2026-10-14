@@ -11,6 +11,8 @@ import {
 } from '@/services/monday/comprobantes'
 import { TABLERO_FACTURAS, TABLERO_REMITOS } from '@/services/monday/columns'
 import { SelectorArchivo } from './SelectorArchivo'
+import { Opcion } from '@/components/ui/Opcion'
+import { Seccion } from '@/components/ui/Seccion'
 
 type Tipo = 'REMITO' | 'FACTURA'
 type Formato = 'PDF' | 'JPEG'
@@ -53,77 +55,6 @@ const iniciales = (nombre: string) =>
     .slice(0, 2)
     .map((p) => p[0]!.toUpperCase())
     .join('')
-
-/** Encabezado numerado de cada bloque del formulario. */
-function Seccion({
-  numero,
-  titulo,
-  ayuda,
-  completa,
-  children,
-}: {
-  numero: number
-  titulo: string
-  ayuda?: string
-  completa: boolean
-  children: ReactNode
-}) {
-  return (
-    <section className={`card card--input seccion ${completa ? 'seccion--completa' : ''}`}>
-      <div className="seccion-head">
-        <span className="seccion-num">{completa ? <i className="fas fa-check" aria-hidden /> : numero}</span>
-        <span className="seccion-tit">
-          {titulo}
-          <span className="ig-req" aria-label="obligatorio" />
-        </span>
-      </div>
-      {ayuda && <p className="seccion-ayuda">{ayuda}</p>}
-      {children}
-    </section>
-  )
-}
-
-interface OpcionProps {
-  activa: boolean
-  /** Hay otra opción elegida: esta se apaga para que quede claro cuál vale. */
-  apagada: boolean
-  color: string
-  icono: string
-  titulo: string
-  detalle?: string
-  onElegir: () => void
-  grande?: boolean
-}
-
-/** Tarjeta de elección única (radio): se pinta entera con su color cuando está elegida. */
-function Opcion({ activa, apagada, color, icono, titulo, detalle, onElegir, grande }: OpcionProps) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={activa}
-      className={[
-        'opcion',
-        `opcion--${color}`,
-        grande ? 'opcion--grande' : '',
-        activa ? 'opcion--activa' : '',
-        apagada ? 'opcion--apagada' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      onClick={onElegir}
-    >
-      <span className="opcion-ic">
-        <i className={`fas fa-${icono}`} aria-hidden />
-      </span>
-      <span className="opcion-body">
-        <span className="opcion-tit">{titulo}</span>
-        {detalle && <span className="opcion-det">{detalle}</span>}
-      </span>
-      <span className="opcion-radio">{activa && <i className="fas fa-check" aria-hidden />}</span>
-    </button>
-  )
-}
 
 /**
  * Operación "Registrar Remito / Factura": se elige qué se sube y se crea el item en su tablero con

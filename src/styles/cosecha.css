@@ -1,0 +1,197 @@
+/*
+ * Registrar Cosecha. Usa las tarjetas de elección y los bloques numerados de Remito/Factura
+ * (`.opcion`, `.seccion`, en comprobante.css) con sus propios colores: crear verde, duplicar azul,
+ * flete propio verde campo y flete contratado marrón (el color de la etiqueta en monday).
+ */
+.cosecha {
+  max-width: 980px;
+}
+.cosecha .opcion--crear {
+  --op: #0e7c86;
+  --op-suave: #e6f5f6;
+}
+.cosecha .opcion--duplicar {
+  --op: #0073ea;
+  --op-suave: #eaf2fd;
+}
+.cosecha .opcion--propio {
+  --op: #2f6f4e;
+  --op-suave: #eaf4ee;
+}
+.cosecha .opcion--contratado {
+  --op: #7f5347;
+  --op-suave: #f5eeec;
+}
+
+/* Lo que abre cada tipo de transporte, unido visualmente a la tarjeta elegida. */
+.transporte-detalle {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px dashed;
+}
+.transporte-detalle--propio {
+  border-color: #bfddcb;
+  background: #f7fbf8;
+}
+.transporte-detalle--contratado {
+  border-color: #dccbc6;
+  background: #fbf8f7;
+}
+
+/* Lote que no es del campo elegido (llega al duplicar una cosecha con datos viejos). */
+.chip-filtro--mal {
+  background: #fef3f2;
+  color: var(--red-dark);
+}
+
+/* ===== Búsqueda de cosechas para duplicar ===== */
+.filtros-cosecha {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.cos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cos-card {
+  border: 1px solid var(--tint-neutral-bd);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.cos-card--abierta {
+  border-color: #0073ea;
+}
+.cos-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 12px 14px;
+}
+.cos-titulo {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cos-nombre {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14.5px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.cos-codigo {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: #0e7c86;
+  background: #e6f5f6;
+  border-radius: 5px;
+  padding: 3px 7px;
+}
+.cos-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cos-resumen {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 12.5px;
+  color: var(--text-gray);
+}
+.cos-resumen i {
+  color: #0e7c86;
+}
+.cos-sep {
+  color: #c0c4d0;
+}
+.cos-acciones {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.cos-detalle {
+  padding: 12px 14px 14px;
+  border-top: 1px solid #eef0f4;
+  background: var(--tint-neutral);
+  border-radius: 0 0 10px 10px;
+}
+/* En el detalle se lee el valor completo, no cortado con puntos suspensivos. */
+.cos-val {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* ===== Cosecha de origen al duplicar ===== */
+.origen {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 2px solid #0073ea;
+  border-radius: 12px;
+  background: #eaf2fd;
+}
+.origen-ic {
+  font-size: 22px;
+  color: #0073ea;
+  flex: none;
+}
+.origen-body {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.origen-lbl {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #0073ea;
+}
+.origen-nom {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.exito--cosecha {
+  --op: #0e7c86;
+  --op-suave: #e6f5f6;
+}
+
+@media (max-width: 720px) {
+  .filtros-cosecha {
+    grid-template-columns: 1fr 1fr;
+  }
+  .cos-acciones {
+    width: 100%;
+  }
+  .cos-acciones .btn {
+    flex: 1;
+  }
+}
+@media (max-width: 460px) {
+  .filtros-cosecha {
+    grid-template-columns: 1fr;
+  }
+}

@@ -8,6 +8,7 @@ desplegable de la cabecera, y el botón de la casita vuelve al inicio. Las opera
   flujo guiado.
 - **Asignación de Barbecho** — a las órdenes de producción en barbecho les asigna el cultivo que se
   va a sembrar y propaga el cambio (ver [más abajo](#asignación-de-barbecho)).
+- **Registrar Remito/Factura** y **Registrar Cosecha** — ver sus secciones más abajo.
 
 ## Puesta en marcha
 
@@ -263,3 +264,42 @@ Orden de las escrituras:
 Si una etapa falla, la pantalla lo dice y ofrece retomar **sobre el mismo item** (no crea otro).
 El aviso de éxito aparece sólo cuando terminaron todas. Mientras se carga, o si quedó algo a
 medias, la app avisa antes de cerrar o recargar la página y antes de cambiar de operación.
+
+## Registrar Cosecha
+
+Dos caminos, elegidos en tarjetas: **Crear Cosecha** o **Duplicar Cosecha**. Los dos usan el mismo
+formulario y las mismas reglas ([`src/lib/cosecha.ts`](src/lib/cosecha.ts)); duplicar sólo
+arranca el formulario con los datos de otra cosecha.
+
+| Dato | Columna de ✋ Cosecha (`18410927172`) | Regla |
+| --- | --- | --- |
+| Cultivo | `board_relation_mm1f8xpb` | obligatorio |
+| Campaña | `board_relation_mm1f9j3` | obligatorio (las activas primero) |
+| Campo | `board_relation_mm1fqqsa` | obligatorio |
+| Lote | `board_relation_mm3bqrjy` | obligatorio, uno o más, **sólo lotes del campo elegido** (subitems del campo) |
+| Fecha | `date_mm3b7319` | obligatorio |
+| KG | `numeric_mm1fs180` | obligatorio, mayor a cero |
+| Destino granos en depósito | `board_relation_mm3cgegw` | obligatorio, **sólo depósitos del cultivo elegido** (`board_relation_mm1fxqbh` del depósito) |
+| Tipo de transporte | `color_mm1fbf6v` | obligatorio: Flete Propio o Flete Contratado |
+| Maquinaria | `board_relation_mm1fbdsm` | con Flete Propio, una o más (buscador con filtros de Tipo y Clasificación) |
+| Proveedor | `board_relation_mm1f9twb` | con Flete Contratado, uno de tipo **Fletes** |
+| Carta de porte · KM · CTG | `text_mm1fnckc` · `numeric_mm1fe2f7` · `text_mm3kavqa` | opcionales |
+
+- Cambiar el campo suelta los lotes que no son de ese campo; cambiar el cultivo suelta el depósito
+  si no es de ese cultivo. Al duplicar, si la cosecha original trae combinaciones que hoy no valen
+  (un proveedor que no es de Fletes, un depósito de otro cultivo), el bloque lo marca en rojo.
+- La columna de maquinarias se lee en vivo: si en monday vuelve a quedar en "un solo elemento",
+  la app deja elegir una sola.
+
+**Qué se escribe:**
+
+- **Crear:** un item con todas las columnas en **una sola escritura** y **sin estado**: la
+  automatización se dispara al crearse el item y tiene que encontrarlo completo.
+- **Duplicar:** el item nuevo nace con 🤖 Estado de Registro (`color_mm444rn8`) = **Registrar DUP**
+  y, recién después, la cosecha original pasa a 🤖Estado Duplicado (`color_mm59ytz6`) =
+  **Duplicado**. Si esa marca falla, se reintenta sólo la marca, sin crear otra cosecha.
+
+Del transporte se escribe sólo lo del tipo elegido. Make renombra el item después.
+
+**Buscar para duplicar:** no se trae el tablero entero. monday filtra por nombre que contiene el
+texto y por Cultivo, Campo, Lote y Campaña combinados, y devuelve las 30 más nuevas.

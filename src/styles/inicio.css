@@ -51,6 +51,10 @@
   --op: #2f6f4e;
   --op-suave: #eaf4ee;
 }
+.inicio-op--teal {
+  --op: #0e7c86;
+  --op-suave: #e6f5f6;
+}
 .inicio-op--ambar {
   --op: #b25e09;
   --op-suave: #fff4e5;

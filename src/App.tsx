@@ -10,6 +10,7 @@ import { Paso4Emision } from '@/features/orden/Paso4Emision'
 import { FlujoBarbecho } from '@/features/barbecho/FlujoBarbecho'
 import { FlujoComprobante } from '@/features/comprobante/FlujoComprobante'
 import { Inicio, type TarjetaOperacion } from '@/features/inicio/Inicio'
+import { FlujoCosecha } from '@/features/cosecha/FlujoCosecha'
 import { traerCatalogos } from '@/services/monday/catalogos'
 import { SinAcceso, mondayHabilitado } from '@/services/monday/sdk'
 import { obtenerDatosSesion } from '@/services/monday/sesion'
@@ -52,6 +53,13 @@ const OPERACIONES: TarjetaOperacion[] = [
     descripcion: 'Subí un remito (PDF o foto) o una factura en PDF a su tablero.',
     icono: 'file-arrow-up',
     color: 'inicio-op--ambar',
+  },
+  {
+    id: 'REGISTRAR_COSECHA',
+    nombre: 'Registrar Cosecha',
+    descripcion: 'Creá una cosecha nueva o duplicá una existente editando sólo lo que cambie.',
+    icono: 'wheat-awn',
+    color: 'inicio-op--teal',
   },
 ]
 
@@ -327,6 +335,14 @@ export function App() {
   /* La asignación de barbecho usa los mismos catálogos (los cultivos) y trae aparte lo suyo. */
   if (operacion === 'ASIGNACION_BARBECHO') {
     return <FlujoBarbecho cultivos={carga.catalogos.cultivos} cabecera={armarCabecera} />
+  }
+
+  /* Cosecha usa los catálogos (cultivos, campos, proveedores, maquinarias) y trae aparte los
+     depósitos y las cosechas a duplicar. */
+  if (operacion === 'REGISTRAR_COSECHA') {
+    return (
+      <FlujoCosecha catalogos={carga.catalogos} cabecera={armarCabecera} onPendiente={setPendiente} />
+    )
   }
 
   /* Emisión terminada. Se detalla orden por orden en vez de dar un "listo" global: como los

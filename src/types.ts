@@ -5,7 +5,11 @@
  */
 
 /** Operación elegida en la barra superior. */
-export type Operacion = 'ORDEN_DE_TRABAJO' | 'ASIGNACION_BARBECHO' | 'REMITO_FACTURA'
+export type Operacion =
+  | 'ORDEN_DE_TRABAJO'
+  | 'ASIGNACION_BARBECHO'
+  | 'REMITO_FACTURA'
+  | 'REGISTRAR_COSECHA'
 
 /** Item genérico de un tablero maestro: lo mínimo para poblar un selector. */
 export interface ItemBasico {
@@ -365,4 +369,63 @@ export interface TotalesAsignacion {
   ordenesTrabajo: number
   confirmaciones: number
   stock: number
+}
+
+/* ===== Registrar Cosecha ===== */
+
+/** Etiquetas de 🤚Tipo de Transporte. */
+export type TipoTransporte = 'Flete Propio' | 'Flete Contratado'
+
+/**
+ * Datos de una cosecha tal como se cargan en el formulario. Es el mismo para crear una nueva y
+ * para duplicar una existente: duplicar es arrancar el formulario con los datos de otra.
+ * Los números van como texto por la coma decimal, igual que en la orden de trabajo.
+ */
+export interface BorradorCosecha {
+  cultivoId: string | null
+  campanaId: string | null
+  campoId: string | null
+  /**
+   * Lotes de ese campo. Son varios porque una cosecha puede juntar el grano de más de un lote
+   * (pasa en el tablero: "LOTE 68, LOTE 65, LOTE 70"); todos tienen que ser del campo elegido.
+   */
+  loteIds: string[]
+  /** ISO `AAAA-MM-DD`, que es lo que maneja el `<input type="date">`. */
+  fecha: string
+  kg: string
+  depositoId: string | null
+  transporte: TipoTransporte | null
+  /** Sólo se escriben con Flete Propio. */
+  maquinariaIds: string[]
+  /** Sólo se escribe con Flete Contratado. */
+  proveedorId: string | null
+  cartaPorte: string
+  km: string
+  ctg: string
+}
+
+/** 🤖 Granos en Deposito. */
+export interface Deposito extends ItemBasico {
+  /** Cultivos conectados en `board_relation_mm1fxqbh`: los que ese depósito puede recibir. */
+  cultivoIds: string[]
+  estado: string
+}
+
+/** Cosecha ya cargada en el tablero, lista para mostrarse y duplicarse. */
+export interface CosechaExistente extends ItemBasico {
+  /** 🤖ID Cosecha (COS-001…). */
+  codigo: string
+  borrador: BorradorCosecha
+  /** Textos de sus conexiones, para mostrarla aunque algún item ya no esté en los catálogos. */
+  textos: {
+    cultivo: string
+    campana: string
+    campo: string
+    lote: string
+    deposito: string
+    proveedor: string
+    maquinarias: string
+  }
+  estadoRegistro: string
+  estadoDuplicado: string
 }
