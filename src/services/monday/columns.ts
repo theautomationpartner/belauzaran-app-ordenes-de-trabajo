@@ -126,10 +126,14 @@ export const OT_ESTADO_ENVIAR_AHORA: string = OT_ESTADOS_ENVIO[1].etiqueta
  * Quién ejecuta la labor (`color_mm1ftcaf`) y con qué tipo de proveedor se corresponde
  * (`dropdown_mm39x0j7` del tablero de Proveedores). Elegir esto primero es lo que reduce la
  * lista de proveedores a los que realmente pueden hacer ese trabajo.
+ *
+ * Cada uno acepta más de un nombre de etiqueta: en monday "Contratista Labores" pasó a llamarse
+ * "Contratista" (14/10/2026) y, buscando sólo el nombre viejo, la carga de OT se quedó sin ningún
+ * contratista para elegir. Aceptar los dos evita que un renombre así la vuelva a romper.
  */
 export const REALIZADO_POR = [
-  { etiqueta: 'Contratista', tipoProveedor: 'Contratista Labores' },
-  { etiqueta: 'Personal de la Empresa', tipoProveedor: 'Personal interno' },
+  { etiqueta: 'Contratista', tiposProveedor: ['Contratista', 'Contratista Labores'] },
+  { etiqueta: 'Personal de la Empresa', tiposProveedor: ['Personal interno', 'Personal Interno'] },
 ] as const
 
 /** ✋ Proveedores (18410927151). */

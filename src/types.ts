@@ -28,7 +28,7 @@ export interface Proveedor extends ItemBasico {
   /** Etiqueta de la columna ✋Status: sólo se ofrecen los `Activo`. */
   estado: string
   cuit: string
-  /** Etiquetas de ✋ Tipo (Contratista Labores / Fletes / Personal interno). */
+  /** Etiquetas de ✋ Tipo (Contratista / Fletes / Personal interno). */
   tipos: string[]
   /** IDs de ✋ Contactos vinculados a este proveedor (columna `board_relation_mm09gcys`). */
   contactoIds: string[]

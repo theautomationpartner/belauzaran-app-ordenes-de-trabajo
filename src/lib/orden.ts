@@ -51,7 +51,7 @@ export const opcionesRealizadoPor = (): string[] => REALIZADO_POR.map((r) => r.e
  * Proveedores que pueden ejecutar la labor.
  *
  * Se filtra por dos cosas: que estén activos, y que su tipo se corresponda con quién va a hacer
- * el trabajo (Contratista → "Contratista Labores", Personal de la Empresa → "Personal interno").
+ * el trabajo (Contratista → "Contratista", Personal de la Empresa → "Personal interno").
  * Sin elegir primero el "realizado por" no se ofrece ninguno: la lista completa mezcla fleteros y
  * proveedores de insumos, que no hacen labores.
  */
@@ -62,9 +62,11 @@ export function proveedoresElegibles(
   const activos = proveedores.filter((p) => p.estado === 'Activo')
   if (!realizadoPor) return []
 
-  const tipoEsperado = REALIZADO_POR.find((r) => r.etiqueta === realizadoPor)?.tipoProveedor
-  if (!tipoEsperado) return activos
-  return activos.filter((p) => p.tipos.includes(tipoEsperado))
+  const tipos: readonly string[] | undefined = REALIZADO_POR.find(
+    (r) => r.etiqueta === realizadoPor,
+  )?.tiposProveedor
+  if (!tipos) return activos
+  return activos.filter((p) => p.tipos.some((t) => tipos.includes(t)))
 }
 
 /** Maquinarias elegidas, en el orden del catálogo. */
