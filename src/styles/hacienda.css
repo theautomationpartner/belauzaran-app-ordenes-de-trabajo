@@ -1,0 +1,579 @@
+/*
+ * Hacienda: registro de movimientos y dashboard.
+ *
+ * Colores por tipo de movimiento (fijos, validados contra daltonismo en este orden):
+ * Compra azul · Nacimiento aqua · Cambio de categoría violeta · Venta amarillo · Muerte rojo.
+ * Aqua y amarillo tienen poco contraste sobre blanco: nunca van solos, siempre con su rótulo,
+ * la leyenda o el valor en texto.
+ */
+.hacienda {
+  --hc-compra: #2a78d6;
+  --hc-nacimiento: #1baf7a;
+  --hc-cambio: #6250d6;
+  --hc-venta: #eda100;
+  --hc-muerte: #e34948;
+  --hc-ingreso: #2a78d6;
+  --hc-egreso: #e34948;
+  --hc-tinta-2: #52514e;
+  --hc-grilla: #eceef2;
+}
+
+/* ===== Pestañas de la cabecera ===== */
+.hc-pestanas {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #e4e7ec;
+  width: 100%;
+  margin-bottom: -14px;
+}
+.hc-pestana {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-gray);
+  cursor: pointer;
+}
+.hc-pestana:hover {
+  color: var(--text-dark);
+}
+.hc-pestana--activa {
+  color: #6250d6;
+  border-bottom-color: #6250d6;
+}
+
+/* ===== Formulario ===== */
+.hc-form {
+  max-width: 920px;
+}
+.hacienda .opcion--ingreso {
+  --op: var(--hc-ingreso);
+  --op-suave: #eaf2fd;
+}
+.hacienda .opcion--egreso {
+  --op: var(--hc-egreso);
+  --op-suave: #fdecec;
+}
+.hacienda .opcion--cambio {
+  --op: var(--hc-cambio);
+  --op-suave: #efedfb;
+}
+.hacienda .opcion--compra {
+  --op: var(--hc-compra);
+  --op-suave: #eaf2fd;
+}
+.hacienda .opcion--nacimiento {
+  --op: #0f8a5f;
+  --op-suave: #e6f6f0;
+}
+.hacienda .opcion--venta {
+  --op: #b27800;
+  --op-suave: #fdf4df;
+}
+.hacienda .opcion--muerte {
+  --op: var(--hc-muerte);
+  --op-suave: #fdecec;
+}
+.hc-subtipo {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--tint-input-bd);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hc-cambio {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 12px;
+}
+.hc-cambio-flecha {
+  margin-top: 36px;
+  color: var(--hc-cambio);
+  font-size: 18px;
+}
+.hc-textarea {
+  height: auto;
+  min-height: 84px;
+  padding: 10px 12px;
+  resize: vertical;
+  line-height: 1.4;
+}
+.exito--hacienda {
+  --op: #6250d6;
+  --op-suave: #efedfb;
+}
+
+/* ===== Filtros del dashboard ===== */
+.hc-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.hc-filtros-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.hc-segmentos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.hc-segmento {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+  cursor: pointer;
+}
+.hc-segmento:hover {
+  border-color: #6250d6;
+}
+.hc-segmento--activo {
+  background: #6250d6;
+  border-color: #6250d6;
+  color: #fff;
+}
+.hc-fechas {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  max-width: 420px;
+}
+.hc-filtros-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 2fr;
+  gap: 14px;
+}
+.hc-tipos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.hc-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-dark);
+  cursor: pointer;
+}
+.hc-tipo--activo {
+  border-color: var(--text-dark);
+  box-shadow: inset 0 0 0 1px var(--text-dark);
+  background: var(--tint-neutral);
+}
+.hc-filtros-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+/* ===== Indicadores ===== */
+.hc-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.hc-kpis--principales {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.hc-kpi {
+  --kpi: #52514e;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--tint-neutral-bd);
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+}
+.hc-kpi:disabled {
+  cursor: default;
+}
+.hc-kpi:not(:disabled):hover {
+  border-color: var(--kpi);
+  box-shadow: 0 4px 14px rgba(16, 24, 40, 0.08);
+  transform: translateY(-1px);
+}
+.hc-kpi-ic {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* El ícono identifica el tipo; el número de al lado va en tinta de texto. */
+  background: var(--kpi);
+  color: #fff;
+  font-size: 16px;
+}
+.hc-kpi-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hc-kpi-tit {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--hc-tinta-2);
+}
+.hc-kpi-val {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+.hc-kpi-det {
+  font-size: 11.5px;
+  color: var(--text-gray);
+}
+.hc-kpi--fuerte .hc-kpi-val {
+  font-size: 26px;
+}
+.hc-kpi-flecha {
+  color: #98a2b3;
+  font-size: 12px;
+}
+
+/* ===== Tarjetas de gráficos ===== */
+.hc-card {
+  background: #fff;
+  border-color: var(--tint-neutral-bd);
+}
+.hc-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 4px;
+}
+.hc-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12px;
+  color: var(--hc-tinta-2);
+  margin-bottom: 8px;
+}
+.hc-leyenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hc-punto {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+.hc-grafico {
+  position: relative;
+  width: 100%;
+}
+.hc-grafico svg {
+  display: block;
+  overflow: visible;
+}
+.hc-grilla {
+  stroke: var(--hc-grilla);
+  stroke-width: 1;
+}
+.hc-eje {
+  stroke: #a5abbd;
+  stroke-width: 1;
+}
+.hc-tick {
+  font-size: 11px;
+  fill: var(--text-gray);
+  font-variant-numeric: tabular-nums;
+}
+.hc-rotulo {
+  font-size: 12.5px;
+  fill: var(--text-dark);
+  font-weight: 600;
+}
+.hc-valor {
+  font-size: 11.5px;
+  fill: var(--hc-tinta-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.hc-hover {
+  fill: #f2f3f6;
+}
+.hc-tooltip {
+  position: absolute;
+  z-index: 5;
+  min-width: 170px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.14);
+  pointer-events: none;
+  font-size: 12.5px;
+}
+.hc-tooltip-tit {
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.hc-tooltip-fila {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.hc-tooltip-fila strong {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.hc-tooltip-total {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid #eef0f4;
+}
+.hc-tooltip-nota {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-gray);
+}
+.hc-comp-sel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hc-comp-sel .fc {
+  height: 38px;
+  font-size: 13.5px;
+  width: auto;
+  padding: 0 8px;
+}
+
+/* ===== Planilla ===== */
+.hc-planilla th,
+.hc-planilla td {
+  white-space: nowrap;
+}
+.hc-col-total {
+  background: var(--tint-neutral);
+}
+.hc-fila {
+  cursor: pointer;
+}
+.hc-fila:hover td {
+  background: var(--hover-gris);
+}
+.hc-fila-detalle td {
+  background: var(--tint-neutral);
+}
+.hc-obs {
+  white-space: pre-wrap;
+}
+.hc-chip-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ===== Ciclo de categorías ===== */
+.hc-ramas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hc-rama {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid #eef0f4;
+  border-radius: 10px;
+  background: var(--tint-neutral);
+}
+.hc-rama-tit {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-gray);
+}
+.hc-cadena {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 0;
+}
+.hc-eslabon {
+  display: inline-flex;
+  align-items: center;
+}
+.hc-nodo {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.hc-flecha {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  min-width: 52px;
+  padding: 2px 8px;
+  border: none;
+  background: none;
+  color: #c0c4d0;
+  cursor: default;
+}
+.hc-flecha-val {
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.hc-flecha--activa {
+  color: #6250d6;
+  cursor: pointer;
+}
+.hc-flecha--activa .hc-flecha-val {
+  color: var(--text-dark);
+}
+.hc-flecha--activa:hover {
+  transform: translateX(2px);
+}
+
+/* ===== Celular ===== */
+@media (max-width: 900px) {
+  .hc-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .hc-filtros-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .hc-filtros-grid > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 720px) {
+  .hc-kpis,
+  .hc-kpis--principales {
+    grid-template-columns: 1fr 1fr;
+  }
+  .hc-kpis--principales > :last-child {
+    grid-column: 1 / -1;
+  }
+  .hc-filtros-grid {
+    grid-template-columns: 1fr;
+  }
+  .hc-cambio {
+    grid-template-columns: 1fr;
+  }
+  .hc-cambio-flecha {
+    margin: 0;
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+  .hc-pestana {
+    flex: 1;
+    justify-content: center;
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+  .hc-comp-sel {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 420px) {
+  .hc-kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+ * En el celular, las tablas de hacienda NO pasan a fichas apiladas (el estilo general de la App):
+ * una planilla de 10 columnas por categoría se vuelve una tira interminable y se pierde la lectura
+ * en fila. Quedan como tabla, con desplazamiento lateral y la primera columna fija, así siempre se
+ * ve de qué categoría o movimiento es cada número.
+ */
+@media (max-width: 640px) {
+  .tabla.hc-tabla-fija {
+    display: table;
+    width: 100%;
+    min-width: 560px;
+  }
+  .tabla.hc-planilla {
+    min-width: 820px;
+  }
+  .hc-tabla-fija thead {
+    display: table-header-group;
+  }
+  .hc-tabla-fija tbody {
+    display: table-row-group;
+  }
+  .hc-tabla-fija tfoot {
+    display: table-footer-group;
+  }
+  .hc-tabla-fija tr {
+    display: table-row;
+    padding: 0;
+  }
+  .hc-tabla-fija td,
+  .hc-tabla-fija th {
+    display: table-cell;
+    width: auto;
+    padding: 8px 10px;
+    text-align: left;
+  }
+  .hc-tabla-fija td.num,
+  .hc-tabla-fija th.num {
+    text-align: right;
+  }
+  .hc-tabla-fija td::before {
+    content: none;
+  }
+  .hc-tabla-fija td:first-child,
+  .hc-tabla-fija th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: #fff;
+    box-shadow: 1px 0 0 #eef0f4;
+  }
+  .hc-tabla-fija th:first-child {
+    background: var(--tint-neutral);
+  }
+  .hc-tabla-fija tfoot td:first-child {
+    background: var(--tint-summary);
+  }
+}

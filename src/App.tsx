@@ -11,6 +11,7 @@ import { FlujoBarbecho } from '@/features/barbecho/FlujoBarbecho'
 import { FlujoComprobante } from '@/features/comprobante/FlujoComprobante'
 import { Inicio, type TarjetaOperacion } from '@/features/inicio/Inicio'
 import { FlujoCosecha } from '@/features/cosecha/FlujoCosecha'
+import { FlujoHacienda } from '@/features/hacienda/FlujoHacienda'
 import { traerCatalogos } from '@/services/monday/catalogos'
 import { SinAcceso, mondayHabilitado } from '@/services/monday/sdk'
 import { obtenerDatosSesion } from '@/services/monday/sesion'
@@ -60,6 +61,13 @@ const OPERACIONES: TarjetaOperacion[] = [
     descripcion: 'Creá una cosecha nueva o duplicá una existente editando sólo lo que cambie.',
     icono: 'wheat-awn',
     color: 'inicio-op--teal',
+  },
+  {
+    id: 'HACIENDA',
+    nombre: 'Hacienda',
+    descripcion: 'Registrá compras, nacimientos, ventas, muertes y cambios de categoría, y seguí el rodeo en el dashboard.',
+    icono: 'cow',
+    color: 'inicio-op--violeta',
   },
 ]
 
@@ -335,6 +343,11 @@ export function App() {
   /* La asignación de barbecho usa los mismos catálogos (los cultivos) y trae aparte lo suyo. */
   if (operacion === 'ASIGNACION_BARBECHO') {
     return <FlujoBarbecho cultivos={carga.catalogos.cultivos} cabecera={armarCabecera} />
+  }
+
+  /* Hacienda usa los campos de los catálogos y trae aparte los movimientos. */
+  if (operacion === 'HACIENDA') {
+    return <FlujoHacienda campos={carga.catalogos.campos} cabecera={armarCabecera} onPendiente={setPendiente} />
   }
 
   /* Cosecha usa los catálogos (cultivos, campos, proveedores, maquinarias) y trae aparte los

@@ -4,7 +4,7 @@
  */
 import type { ItemBasico } from '@/types'
 import { mondayApi, subirArchivo } from './sdk'
-import { obtenerDatosSesion } from './sesion'
+import { usuarioActual } from './usuario'
 import {
   COL_FACTURA,
   COL_REMITO,
@@ -31,29 +31,6 @@ export interface DatosRemito {
 }
 
 /**
- * Id del usuario que está usando la App.
- *
- * En monday sale del `sessionToken`, que monday firma con el usuario logueado: es el mismo token
- * que verifica el servidor, así que no se puede hacer pasar por otro desde el navegador. NO se
- * pregunta `me` a la API, porque en el deploy la API responde con el token de la cuenta y
- * devolvería siempre el mismo usuario. En local no hay sesión de monday: ahí `me` es el dueño
- * del token de desarrollo, que alcanza para probar.
- */
-async function idUsuarioActual(): Promise<string | null> {
-  try {
-    if (import.meta.env.DEV) {
-      const d = await mondayApi<{ me: { id: string } | null }>('query { me { id } }')
-      return d.me ? String(d.me.id) : null
-    }
-    const sesion = await obtenerDatosSesion()
-    return sesion.userId ? String(sesion.userId) : null
-  } catch {
-    // Sin saber quién es, la persona se elige a mano: no impide registrar.
-    return null
-  }
-}
-
-/**
  * Personas y destinos, en un solo viaje.
  *
  * Las personas son los suscriptores del tablero de remitos: la columna sólo acepta a quien tiene
@@ -68,7 +45,7 @@ export async function traerDatosRemito(): Promise<DatosRemito> {
       remitos: boards(ids: ${TABLERO_REMITOS}) { subscribers { id name enabled is_guest } }
       destinos: boards(ids: ${TABLERO_DESTINOS}) { items_page(limit: 100) { items { id name } } }
     }`),
-    idUsuarioActual(),
+    usuarioActual().then((u) => u?.id ?? null),
   ])
 
   const personas = (data.remitos[0]?.subscribers ?? [])

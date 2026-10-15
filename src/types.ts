@@ -10,6 +10,7 @@ export type Operacion =
   | 'ASIGNACION_BARBECHO'
   | 'REMITO_FACTURA'
   | 'REGISTRAR_COSECHA'
+  | 'HACIENDA'
 
 /** Item genérico de un tablero maestro: lo mínimo para poblar un selector. */
 export interface ItemBasico {

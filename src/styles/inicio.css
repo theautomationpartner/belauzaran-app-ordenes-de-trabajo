@@ -55,6 +55,10 @@
   --op: #0e7c86;
   --op-suave: #e6f5f6;
 }
+.inicio-op--violeta {
+  --op: #6250d6;
+  --op-suave: #efedfb;
+}
 .inicio-op--ambar {
   --op: #b25e09;
   --op-suave: #fff4e5;

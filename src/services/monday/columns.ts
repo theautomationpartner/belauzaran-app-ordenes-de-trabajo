@@ -335,3 +335,26 @@ export const COL_DEPOSITO_ALTA = {
   ubicacion: 'location_mm1fh806',
 } as const
 export const DEPOSITO_ACTIVO = 'Activo'
+
+/* ===== Hacienda ===== */
+
+/** Movimientos (workspace Productor Agropecuario): un item por movimiento de hacienda. */
+export const TABLERO_MOVIMIENTOS = '18427921086'
+
+export const COL_MOVIMIENTO = {
+  /** Status: Compra, Nacimiento, Venta, Muerte, Cambio de categoría. */
+  tipo: 'color_mm6hkxdz',
+  campo: 'board_relation_mm6hcmsa',
+  /** Categoría de una compra, nacimiento, venta o muerte. */
+  categoria: 'dropdown_mm6he6mf',
+  /** Cambio de categoría: de qué categoría pasan… */
+  origen: 'dropdown_mm84phck',
+  /** …y a cuál. */
+  destino: 'dropdown_mm6h5qtz',
+  observaciones: 'long_text_mm6hp8cm',
+  fecha: 'date_mm6hngt9',
+  cantidad: 'numeric_mm6hzs94',
+  responsable: 'text_mm84dcnt',
+  /** 🤖ID Movimiento (MOV-001…). */
+  codigo: 'pulse_id_mm846ga1',
+} as const

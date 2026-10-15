@@ -8,7 +8,7 @@ desplegable de la cabecera, y el botón de la casita vuelve al inicio. Las opera
   flujo guiado.
 - **Asignación de Barbecho** — a las órdenes de producción en barbecho les asigna el cultivo que se
   va a sembrar y propaga el cambio (ver [más abajo](#asignación-de-barbecho)).
-- **Registrar Remito/Factura** y **Registrar Cosecha** — ver sus secciones más abajo.
+- **Registrar Remito/Factura**, **Registrar Cosecha** y **Hacienda** — ver sus secciones más abajo.
 
 ## Puesta en marcha
 
@@ -337,3 +337,56 @@ como reales y al reintentar no se duplican.
 - Lo creado se suma a los catálogos de la app: el proveedor nuevo aparece también en las otras
   operaciones sin recargar.
 - Si un id provisorio llegara a la escritura de la cosecha, se corta antes de escribir.
+
+## Hacienda
+
+Una operación con dos pestañas: **Registrar Movimiento** y **Dashboard**. Todo sale del tablero
+**Movimientos** (`18427921086`, workspace Productor Agropecuario); reglas en
+[`src/lib/hacienda.ts`](src/lib/hacienda.ts).
+
+### Registrar Movimiento
+
+Las mismas reglas del formulario HTML original, en el estilo de la App. Al abrirse carga los
+campos y las etiquetas de las columnas directo de monday y al confirmar crea el item; no usa los
+webhooks de Make.
+
+1. **Tipo**: Ingreso (Compra / Nacimiento), Egreso (Venta / Muerte) o Cambio de categoría.
+2. **Categoría** (`dropdown_mm6he6mf`). En un **nacimiento sólo terneros o terneras**. En un
+   **cambio de categoría**, origen (`dropdown_mm84phck`) y destino (`dropdown_mm6h5qtz`), y el
+   destino sólo ofrece la categoría que sigue en el crecimiento:
+   - Terneras → Vaquillonas 1-2 años → Vaquillonas +2 años → Vacas → Vacas de refugo
+   - Terneros → Novillitos → Novillos, o Terneros → Toritos → Toros
+
+   Si el origen tiene un único destino, se elige solo.
+3. **Datos**: campo (`board_relation_mm6hcmsa`), fecha (`date_mm6hngt9`, no futura), cantidad
+   (`numeric_mm6hzs94`, entero mayor a 0), responsable (`text_mm84dcnt`, se propone el usuario de
+   monday logueado) y observaciones opcionales (`long_text_mm6hp8cm`).
+
+El tipo va a `color_mm6hkxdz`. El nombre del item sigue la convención del formulario original:
+`Venta-Vaquillonas +2 años_14/10/2026` o `Cambio de categoría-Terneras-Vaquillonas 1-2 años_14/10/2026`.
+
+Las reglas comparan las categorías con una clave que ignora plural, tildes y cómo esté escrito el
+rango de edad, así un renombre de etiqueta en monday no las rompe.
+
+### Dashboard
+
+Filtros por **período** (este mes, últimos 3 meses, este año, últimos 12 meses, todo o
+personalizado), **campo**, **categoría** y **tipo de movimiento**, combinables.
+
+- **Indicadores** de ingresos, egresos, variación del rodeo y uno por tipo. Cada uno abre los
+  movimientos que suma.
+- **Evolución mensual**: ingresos hacia arriba y egresos hacia abajo por mes; tooltip con el
+  detalle y clic para ver los movimientos.
+- **Planilla de existencias del período**: por categoría, ingresos y egresos por recategorización,
+  compras, nacimientos, ventas y muertes, como la planilla de la empresa. Falta sólo el stock
+  inicial, que no surge de los movimientos.
+- **Cambios de categoría**: el ciclo de cada rama con las cabezas recategorizadas y, por cambio,
+  movimientos, cabezas, primera y última fecha, cada cuánto se recategoriza y el **tiempo en la
+  categoría** (estimado por orden de llegada sobre todo el historial).
+- **Comparativa entre períodos**: el mismo mes (o el año completo) de dos años distintos.
+- **Por campo**: ingresos y egresos de cada campo.
+- **Movimientos del período**: tabla con buscador; cada fila despliega responsable y observaciones.
+
+Los gráficos son SVG propios. Los colores por tipo son fijos (Compra azul, Nacimiento aqua, Cambio
+violeta, Venta amarillo, Muerte rojo) y su orden está validado contra daltonismo. En el celular las
+tablas de hacienda no pasan a fichas: quedan con desplazamiento lateral y la primera columna fija.
